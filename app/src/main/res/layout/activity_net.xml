@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="5dp"
+    tools:context=".NetActivity">
+
+    <RadioGroup
+        android:id="@+id/rg_radiogroup"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <RadioButton
+            android:id="@+id/radio_server"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="服务端" />
+
+        <RadioButton
+            android:id="@+id/radio_client"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="客户端" />
+
+        <RadioButton
+            android:id="@+id/radio_disconnect"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="断开链接" />
+
+    </RadioGroup>
+
+    <TextView
+        android:id="@+id/connect_state"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="连接状态:未连接" />
+
+    <LinearLayout
+        android:id="@+id/net_server"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/net_address"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="IP地址" />
+
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/net_client"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <EditText
+                android:id="@+id/input_address"
+                android:layout_width="300dp"
+                android:layout_height="wrap_content"
+                android:hint="输入服务端ip地址" />
+
+            <Button
+                android:id="@+id/connect"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="连接" />
+        </LinearLayout>
+
+
+        <Button
+            android:id="@+id/button_voice"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:text="按住讲话" />
+    </LinearLayout>
+
+
+</LinearLayout>
