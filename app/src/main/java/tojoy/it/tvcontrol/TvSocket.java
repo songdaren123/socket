@@ -6,7 +6,6 @@ import java.io.DataInputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.logging.Handler;
 
 /**
  * @ClassName: ServerSocket
@@ -37,7 +36,7 @@ public class TvSocket {
                 Log.d(TAG, "accept: ");
                 handler.sendEmptyMessage(2);
                 DataInputStream inputStream = new DataInputStream(socket.getInputStream());
-                byte[] bt = new byte[1024];
+                byte[] bt = new byte[1024 * 2];
                 while (inputStream.read(bt, 0, bt.length) != -1) {
                     Log.d(TAG, "accept: " + bt.length);
                     inputStream.read(bt, 0, bt.length);

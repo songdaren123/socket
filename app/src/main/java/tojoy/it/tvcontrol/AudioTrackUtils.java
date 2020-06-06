@@ -36,5 +36,6 @@ public class AudioTrackUtils {
 
     public void write(@NonNull byte[] audioData, int offsetInBytes, int sizeInBytes) {
         track.write(audioData, offsetInBytes, sizeInBytes);
+        track.flush();
     }
 }

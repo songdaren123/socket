@@ -19,7 +19,7 @@ public class RecoderUtils {
     private AudioRecord audioRecord;
     //采样率的修改会影响语音识别的效果
     private int sampleRateInHz = 16000;
-    private int bufferSizeInBytes = 1024;
+    private int bufferSizeInBytes = 1024 * 2;
     private int audioSource = MediaRecorder.AudioSource.MIC;
     private int channelConfig = AudioFormat.CHANNEL_IN_MONO;
     private int audioFormat = AudioFormat.ENCODING_PCM_16BIT;
@@ -58,8 +58,6 @@ public class RecoderUtils {
         return -1;
 
     }
-
-
 
 
     public boolean isRecoder() {

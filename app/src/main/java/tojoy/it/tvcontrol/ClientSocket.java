@@ -59,9 +59,8 @@ public class ClientSocket {
             if (mSocket != null && mSocket.isConnected()) {
                 output = new DataOutputStream(mSocket.getOutputStream());
                 while (true) {
-                    byte[] bt = new byte[1024];
+                    byte[] bt = new byte[1024 * 2];
                     while (RecoderUtils.newInstance().read(bt, 0, bt.length) != -1) {
-                        Log.d(TAG, "-------" + bt.length);
                         output.write(bt);
                         output.flush();
                     }
