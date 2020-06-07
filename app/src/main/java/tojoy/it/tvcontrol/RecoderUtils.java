@@ -52,9 +52,15 @@ public class RecoderUtils {
     }
 
     public int read(@NonNull byte[] bytes, int offsetInBytes, int sizeInBytes) {
-        if (audioRecord != null && isRecoder) {
-            return audioRecord.read(bytes, offsetInBytes, sizeInBytes);
+        try {
+            if (audioRecord != null && isRecoder) {
+                return audioRecord.read(bytes, offsetInBytes, sizeInBytes);
+            }
+            return -1;
+        } catch (Exception e) {
+            Log.d(TAG, "read: " + e);
         }
+
         return -1;
 
     }
@@ -69,12 +75,15 @@ public class RecoderUtils {
      */
     public void stopRecoder() {
         Log.d(TAG, "stopRecoder: ");
-
-        if (audioRecord != null) {
-            audioRecord.stop();
-            audioRecord.release();
-            isRecoder = false;
-            audioRecord = null;
+        try {
+            if (audioRecord != null) {
+                audioRecord.stop();
+                audioRecord.release();
+                isRecoder = false;
+                audioRecord = null;
+            }
+        } catch (Exception e) {
+            Log.d(TAG, "stopRecoder: " + e);
         }
 
 

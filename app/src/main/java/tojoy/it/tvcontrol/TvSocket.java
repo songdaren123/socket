@@ -37,14 +37,14 @@ public class TvSocket {
                 handler.sendEmptyMessage(2);
                 DataInputStream inputStream = new DataInputStream(socket.getInputStream());
                 byte[] bt = new byte[1024 * 2];
-                while (inputStream.read(bt, 0, bt.length) != -1) {
+                int len = 0;
+                while ((len = inputStream.read(bt, 0, bt.length)) != -1) {
                     Log.d(TAG, "accept: " + bt.length);
-                    inputStream.read(bt, 0, bt.length);
                     if (audioTrackUtils == null) {
                         audioTrackUtils = new AudioTrackUtils();
                         audioTrackUtils.play();
                     } else {
-                        audioTrackUtils.write(bt, 0, bt.length);
+                        audioTrackUtils.write(bt, 0, len);
                     }
                 }
 

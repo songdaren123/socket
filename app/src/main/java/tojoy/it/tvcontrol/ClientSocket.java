@@ -60,8 +60,9 @@ public class ClientSocket {
                 output = new DataOutputStream(mSocket.getOutputStream());
                 while (true) {
                     byte[] bt = new byte[1024 * 2];
-                    while (RecoderUtils.newInstance().read(bt, 0, bt.length) != -1) {
-                        output.write(bt);
+                    int len = 0;
+                    while ((len = RecoderUtils.newInstance().read(bt, 0, bt.length)) > -1) {
+                        output.write(bt, 0, len);
                         output.flush();
                     }
                 }
@@ -75,23 +76,12 @@ public class ClientSocket {
 
             } catch (IOException e1) {
                 e.printStackTrace();
+                Log.d(TAG, "writeAudio: "+e1);
             }
         }
-//            COUNT = 0;
-//            while (!isConnected) {
-//                COUNT++;
-//                if (COUNT > 15)
-//                    break;
-//                try {
-//                    Thread.sleep(10000);
-//                    isConnected = connecteService();
-//                } catch (InterruptedException e2) {
-//                    // TODO Auto-generated catch block
-//                    e.printStackTrace();
-//                    Log.i(TAG, "InterruptedException:" + e2);
-//                }
-//            }
-//            mHandler.sendEmptyMessage(MSG_RECONNECTD);
+        catch (Exception e){
+            Log.d(TAG, "writeAudio: "+e);
+        }
     }
 
 }

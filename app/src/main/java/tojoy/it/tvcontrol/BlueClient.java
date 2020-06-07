@@ -177,7 +177,7 @@ class BlueClient {
                 while (true) {
                     byte[] bt = new byte[1024 * 2];
                     int len = 0;
-                    while ((len = RecoderUtils.newInstance().read(bt, 0, bt.length)) != -1) {
+                    while ((len = RecoderUtils.newInstance().read(bt, 0, bt.length)) > -1) {
                         output.write(bt, 0, len);
                         output.flush();
                     }
