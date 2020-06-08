@@ -3,11 +3,9 @@ package tojoy.it.tvcontrol;
 import android.os.Handler;
 import android.util.Log;
 
-import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
 
@@ -22,16 +20,22 @@ public class ClientSocket {
     private Socket mSocket;
     private boolean isConnected = false;
     private DataOutputStream output = null;
+    //操作类型 0 空闲
+    private volatile int operator = 0;
+    private KeepLive mKeepLive;
 
     public void createSocket(String ip, Handler handler) {
         try {
             if (mSocket == null || mSocket.isClosed())
                 mSocket = new Socket();
-            Log.i(TAG, "isClosed:" + mSocket.isClosed());
+            LogUtil.logd(TAG, "isClosed:" + mSocket.isClosed());
             mSocket.connect(new InetSocketAddress(ip, TvSocket.port));
             mSocket.setSoTimeout(50000);
             mSocket.setKeepAlive(true);
             handler.sendEmptyMessage(mSocket.isConnected() ? 2 : 0);
+            output = new DataOutputStream(mSocket.getOutputStream());
+            mKeepLive = new KeepLive();
+            mKeepLive.start();
             writeAudio();
         } catch (UnknownHostException e) {
             try {
@@ -39,7 +43,7 @@ public class ClientSocket {
                 mSocket = null;
             } catch (IOException e1) {
                 e1.printStackTrace();
-                Log.d(TAG, "createSocket: " + e1);
+                LogUtil.logd(TAG, "createSocket: " + e1);
             }
             e.printStackTrace();
         } catch (IOException e) {
@@ -50,24 +54,30 @@ public class ClientSocket {
             } catch (IOException e1) {
                 e1.printStackTrace();
             }
-            Log.i(TAG, "IOException1:" + e);
+            LogUtil.logd(TAG, "IOException1:" + e);
         }
     }
 
-    private void writeAudio() {
+    public void writeAudio() {
         try {
             if (mSocket != null && mSocket.isConnected()) {
-                output = new DataOutputStream(mSocket.getOutputStream());
                 while (true) {
                     byte[] bt = new byte[1024 * 2];
                     int len = 0;
-                    while ((len = RecoderUtils.newInstance().read(bt, 0, bt.length)) > -1) {
+                    bt[0] = 1;
+                    while ((len = RecoderUtils.newInstance().read(bt, 1, bt.length - 1)) > 0) {
+                        operator = 1;
                         output.write(bt, 0, len);
                         output.flush();
+                        Log.d(TAG, "writeAudio--->len: " + len);
+                        Log.d(TAG, "writeAudio---->bt: " + bt[0]);
                     }
+                    operator = 0;
                 }
+
             }
         } catch (IOException e) {
+            LogUtil.logd(TAG, "writeAudio: " + e);
             e.printStackTrace();
             try {
                 mSocket.close();
@@ -76,11 +86,41 @@ public class ClientSocket {
 
             } catch (IOException e1) {
                 e.printStackTrace();
-                Log.d(TAG, "writeAudio: "+e1);
+                LogUtil.logd(TAG, "writeAudio: " + e1);
             }
+        } catch (Exception e) {
+            LogUtil.logd(TAG, "writeAudio: " + e);
         }
-        catch (Exception e){
-            Log.d(TAG, "writeAudio: "+e);
+    }
+
+    private class KeepLive extends Thread {
+        @Override
+        public void run() {
+            super.run();
+            try {
+                while (true) {
+                    if (output != null && operator == 0) {
+                        byte[] bt = new byte[2];
+                        bt[0] = 2;
+                        output.write(bt, 0, bt.length);
+                        output.flush();
+                    }
+                    Thread.sleep(2000);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+                try {
+                    mSocket.close();
+                    output.close();
+                    isConnected = false;
+
+                } catch (IOException e1) {
+                    e.printStackTrace();
+                    LogUtil.logd(TAG, "writeAudio: " + e1);
+                }
+            } catch (Exception e) {
+                LogUtil.logd(TAG, "writeAudio: " + e);
+            }
         }
     }
 

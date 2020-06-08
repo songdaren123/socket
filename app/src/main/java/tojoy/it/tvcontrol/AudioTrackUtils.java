@@ -21,11 +21,11 @@ public class AudioTrackUtils {
         track = new AudioTrack(AudioManager.STREAM_MUSIC, 16000, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT, bufferSize, AudioTrack.MODE_STREAM);
     }
 
-    public void play() {
+    public synchronized void play() {
         track.play();
     }
 
-    public void stop() {
+    public synchronized void stop() {
         try {
             track.stop();
             track.release();
@@ -34,7 +34,7 @@ public class AudioTrackUtils {
         }
     }
 
-    public void write(@NonNull byte[] audioData, int offsetInBytes, int sizeInBytes) {
+    public synchronized void write(@NonNull byte[] audioData, int offsetInBytes, int sizeInBytes) {
         track.write(audioData, offsetInBytes, sizeInBytes);
         track.flush();
     }

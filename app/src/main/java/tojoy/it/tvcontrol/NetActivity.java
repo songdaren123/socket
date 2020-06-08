@@ -29,6 +29,7 @@ public class NetActivity extends AppCompatActivity implements View.OnClickListen
     private Button mVoice;
     private Button mConnect;
     public static int COUNT = 0;
+    ClientSocket clientSocket;
     private Handler mHandler = new Handler() {
         @SuppressLint("HandlerLeak")
         @Override
@@ -80,6 +81,8 @@ public class NetActivity extends AppCompatActivity implements View.OnClickListen
                 switch (event.getAction()) {
                     case MotionEvent.ACTION_DOWN:
                         RecoderUtils.newInstance().startRecoder();
+
+
                         break;
                     case MotionEvent.ACTION_UP:
                     case MotionEvent.ACTION_CANCEL:
