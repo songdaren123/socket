@@ -30,6 +30,8 @@ class BlueServer {
     }
 
     public void initServer() {
+        Log.d(TAG, "bluetooth-->name: " + bluetoothAdapter.getName());
+        Log.d(TAG, "bluetooth-->address: " + bluetoothAdapter.getAddress());
         BluetoothServerSocket mmServerSocket = null;
         AudioTrackUtils audioTrackUtils = null;
         try {
