@@ -6,9 +6,6 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
 import android.bluetooth.BluetoothSocket;
-import android.bluetooth.le.BluetoothLeScanner;
-import android.bluetooth.le.ScanCallback;
-import android.bluetooth.le.ScanResult;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -37,6 +34,8 @@ class BlueClient {
     private UUID mUUID = null;
     private Context context;
     private Handler handler;
+//    private String name = "rksdk";大屏蓝牙
+    private String name = "songdaren";//
 
     public BlueClient(BluetoothAdapter bluetoothAdapter, BluetoothManager bluetoothManager, Context context, Handler handler) {
         this.bluetoothAdapter = bluetoothAdapter;
@@ -67,16 +66,16 @@ class BlueClient {
             Set<BluetoothDevice> devices = bluetoothAdapter.getBondedDevices();
             for (BluetoothDevice device : devices) {
                 Log.d(TAG, "start: " + device.getName());
-                if (device.getName().equals("songdaren")) {
-                    bluetoothAdapter.cancelDiscovery();
+                if (device.getName().equals(name)) {
                     mBluetoothDevice = device;
-                    Log.d(TAG, "start: " + device.getUuids());
+                    Log.d(TAG, "start: 去连接");
                     new Thread(new Runnable() {
                         @Override
                         public void run() {
                             connectDevice();
                         }
                     }).start();
+                    break;
                 }
 
             }
@@ -116,7 +115,7 @@ class BlueClient {
                         mBluetoothDevice = mDevices.get(i);
                         //调用创建Socket连接
                         Log.d(TAG, "ProxyListener: " + mBluetoothDevice.getName());
-                        if (mBluetoothDevice.getName().equals("songdaren")) {
+                        if (mBluetoothDevice.getName().equals(name)) {
                             Log.d(TAG, "ProxyListener: " + mBluetoothDevice.getUuids());
                             new Thread(new Runnable() {
                                 @Override
@@ -205,6 +204,8 @@ class BlueClient {
             }
         } catch (IOException e) {
             e.printStackTrace();
+        } catch (Exception e) {
+            Log.d(TAG, "connectDevice: " + e);
         }
 
     }
@@ -217,7 +218,7 @@ class BlueClient {
                 BluetoothDevice device = intent
                         .getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
                 Log.d(TAG, "onReceive: " + device.getName());
-                if (device.getName().equals("songdaren")) {
+                if (device.getName().equals(name)) {
                     bluetoothAdapter.cancelDiscovery();
                     mBluetoothDevice = device;
                     Log.d(TAG, "onReceive: " + device.getUuids());
