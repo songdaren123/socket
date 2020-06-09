@@ -1,6 +1,8 @@
 package tojoy.it.tvcontrol;
 
 
+import androidx.annotation.NonNull;
+
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -25,6 +27,7 @@ public class TvSocket {
     private static final int CORE_POOL_SIZE = 5;//核心线程
     private static final int MAX_POOL_SIZE = 20;//最大线程数
     private static final int KEEP_ALIVE_SECONDS = 3;
+
 
     public void init(android.os.Handler handler) {
         try {
@@ -66,8 +69,12 @@ public class TvSocket {
         }
     }
 
-    private class ClientThread implements Runnable {
+    private class ClientThread implements Runnable, AudioTrackUtils.AudioTrackInterface {
         private Socket socket;
+        DataInputStream inputStream;
+        AudioTrackUtils audioTrackUtils = null;
+        int len = 0;
+        private boolean isHeartbeat = true;
 
         public ClientThread(Socket socket) {
             this.socket = socket;
@@ -75,24 +82,32 @@ public class TvSocket {
 
         @Override
         public void run() {
-            AudioTrackUtils audioTrackUtils = null;
             try {
                 while (true) {
+                    inputStream = new DataInputStream(socket.getInputStream());
+                    accpetHeartbeat();
 
-                    DataInputStream inputStream = new DataInputStream(socket.getInputStream());
+                }
+            } catch (Exception e) {
+                LogUtil.logd(TAG, "Exception: " + e);
+            }
+
+        }
+
+        //读取心跳数据
+        private void accpetHeartbeat() {
+            isHeartbeat = true;
+            try {
+                while (true && isHeartbeat) {
                     byte[] bt = new byte[1024 * 2];
                     int len = 0;
                     while ((len = inputStream.read(bt, 0, bt.length)) != -1) {
-                        LogUtil.logd(TAG, "accept--bt: " + bt[0]);
-                        LogUtil.logd(TAG, "accept--len: " + len);
-                        if (bt[0] == 1) {
-                            if (audioTrackUtils == null) {
-                                audioTrackUtils = new AudioTrackUtils();
-                                audioTrackUtils.play();
-                            } else {
-                                audioTrackUtils.write(bt, 1, len);
-                            }
-                        } else if (bt[0] == 2) {
+                        if (bt[0] == 1 && len == 2) {
+                            LogUtil.logd(TAG, "run: 开始接受音频包");
+                            isHeartbeat = false;
+                            readerAudio();
+
+                        } else if (bt[0] == 2 && len == 2) {
                             LogUtil.logd(TAG, "run: 心跳包");
                             if (audioTrackUtils != null) {
                                 audioTrackUtils.stop();
@@ -105,9 +120,40 @@ public class TvSocket {
 
                 }
             } catch (Exception e) {
-                LogUtil.logd(TAG, "run: " + e);
+                LogUtil.logd(TAG, "Exception: " + e);
             }
 
+        }
+
+        private void readerAudio() {
+            try {
+                int len = 0;
+                while (len != -1) {
+                    if (audioTrackUtils == null) {
+                        audioTrackUtils = new AudioTrackUtils();
+                        audioTrackUtils.setAudioTrackInterface(this);
+                        audioTrackUtils.play();
+                    }
+                    len = audioTrackUtils.write();
+
+                }
+                audioTrackUtils.stop();
+                accpetHeartbeat();
+            } catch (Exception e) {
+                LogUtil.logd(TAG, "Exception: " + e);
+            }
+        }
+
+
+        @Override
+        public int getAudioData(@NonNull byte[] audioData, int offsetInBytes, int sizeInBytes) {
+            try {
+                len = inputStream.read(audioData, 0, sizeInBytes);
+                LogUtil.logd(TAG, "getAudioData: len-->" + len);
+            } catch (Exception e) {
+                LogUtil.logd(TAG, "getAudioData:Exception :" + e);
+            }
+            return len;
         }
     }
 

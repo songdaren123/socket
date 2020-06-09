@@ -36,7 +36,6 @@ public class ClientSocket {
             output = new DataOutputStream(mSocket.getOutputStream());
             mKeepLive = new KeepLive();
             mKeepLive.start();
-            writeAudio();
         } catch (UnknownHostException e) {
             try {
                 mSocket.close();
@@ -58,24 +57,35 @@ public class ClientSocket {
         }
     }
 
+    public void startRecoder() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                writeAudio();
+            }
+        }).start();
+    }
+
     public void writeAudio() {
+        LogUtil.logd(TAG, "writeAudio--1: ");
         try {
             if (mSocket != null && mSocket.isConnected()) {
-                while (true) {
-                    byte[] bt = new byte[1024 * 2];
-                    int len = 0;
-                    bt[0] = 1;
-                    while ((len = RecoderUtils.newInstance().read(bt, 1, bt.length - 1)) > 0) {
-                        operator = 1;
-                        output.write(bt, 0, len);
-                        output.flush();
-                        Log.d(TAG, "writeAudio--->len: " + len);
-                        Log.d(TAG, "writeAudio---->bt: " + bt[0]);
-                    }
-                    operator = 0;
+                operator = 1;
+                byte[] cmd = new byte[2];
+                cmd[0] = 1;
+                output.write(cmd, 0, cmd.length);
+                output.flush();
+                byte[] bt = new byte[1024 * 2];
+                int len = 0;
+                bt[0] = 1;
+                while ((len = RecoderUtils.newInstance().read(bt, 0, bt.length - 1)) > 0) {
+                    output.write(bt, 0, len);
+                    output.flush();
+                    LogUtil.logd(TAG, "writeAudio--->len: " + len);
                 }
-
+                operator = 0;
             }
+
         } catch (IOException e) {
             LogUtil.logd(TAG, "writeAudio: " + e);
             e.printStackTrace();
@@ -104,22 +114,24 @@ public class ClientSocket {
                         bt[0] = 2;
                         output.write(bt, 0, bt.length);
                         output.flush();
+                        LogUtil.logd(TAG, "KeepLive--1: ");
                     }
                     Thread.sleep(2000);
                 }
             } catch (IOException e) {
                 e.printStackTrace();
+                LogUtil.logd(TAG, "KeepLive1:" + e);
                 try {
                     mSocket.close();
                     output.close();
                     isConnected = false;
 
-                } catch (IOException e1) {
+                } catch (Exception e1) {
                     e.printStackTrace();
-                    LogUtil.logd(TAG, "writeAudio: " + e1);
+                    LogUtil.logd(TAG, "KeepLive2: " + e1);
                 }
             } catch (Exception e) {
-                LogUtil.logd(TAG, "writeAudio: " + e);
+                LogUtil.logd(TAG, "KeepLive3: " + e);
             }
         }
     }

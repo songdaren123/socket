@@ -81,6 +81,9 @@ public class NetActivity extends AppCompatActivity implements View.OnClickListen
                 switch (event.getAction()) {
                     case MotionEvent.ACTION_DOWN:
                         RecoderUtils.newInstance().startRecoder();
+                        if (clientSocket != null) {
+                            clientSocket.startRecoder();
+                        }
 
 
                         break;
