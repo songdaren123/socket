@@ -69,6 +69,7 @@ public class ClientSocket {
     public void writeAudio() {
         LogUtil.logd(TAG, "writeAudio--1: ");
         try {
+            LogUtil.logd(TAG, "writeAudio--mSocket: " + mSocket + "-----" + mSocket.isConnected());
             if (mSocket != null && mSocket.isConnected()) {
                 operator = 1;
                 byte[] cmd = new byte[2];

@@ -107,7 +107,7 @@ public class NetActivity extends AppCompatActivity implements View.OnClickListen
         new Thread(new Runnable() {
             @Override
             public void run() {
-                ClientSocket clientSocket = new ClientSocket();
+                clientSocket = new ClientSocket();
                 clientSocket.createSocket(address, mHandler);
             }
         }).start();

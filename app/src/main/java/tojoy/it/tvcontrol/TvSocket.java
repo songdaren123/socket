@@ -106,7 +106,7 @@ public class TvSocket {
                             LogUtil.logd(TAG, "run: 开始接受音频包");
                             isHeartbeat = false;
                             readerAudio();
-
+                            break;
                         } else if (bt[0] == 2 && len == 2) {
                             LogUtil.logd(TAG, "run: 心跳包");
                             if (audioTrackUtils != null) {
