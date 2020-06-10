@@ -19,7 +19,6 @@ import androidx.appcompat.app.AppCompatActivity;
 
 public class NetActivity extends AppCompatActivity implements View.OnClickListener {
     private static final int MSG_RECONNECTD = 1;
-    private String TAG = "songmingzhan-NetActivity";
     private RadioGroup mRadioGroup;
     private TextView mConnectState;
     private TextView serverIp;
@@ -28,16 +27,36 @@ public class NetActivity extends AppCompatActivity implements View.OnClickListen
     private LinearLayout mClientLayout;
     private Button mVoice;
     private Button mConnect;
-    public static int COUNT = 0;
+    //    public static int COUNT = 0;
     ClientSocket clientSocket;
+    public static final int CONNECT_MAX = 6;
+    private int reconnect_count = 0;
+    private boolean disconnect = false;
     private Handler mHandler = new Handler() {
         @SuppressLint("HandlerLeak")
         @Override
         public void handleMessage(@NonNull Message msg) {
             super.handleMessage(msg);
             switch (msg.what) {
+                case 3:
+                    if (clientSocket != null) {
+                        new Thread(clientSocket).start();
+                    }
+                    if (reconnect_count < CONNECT_MAX) {
+                        reconnect_count++;
+                        mHandler.sendEmptyMessageDelayed(3, 3000);
+                    } else {
+                        mConnectState.setText("重连" + reconnect_count);
+                    }
+                    break;
                 case 2:
                     mConnectState.setText("连接成功");
+                    break;
+                case 1:
+                    reconnect_count = 0;
+                    if (!disconnect)
+                        mHandler.sendEmptyMessageDelayed(3, 2000);
+                    mConnectState.setText("链接断开");
                     break;
             }
         }
@@ -67,9 +86,14 @@ public class NetActivity extends AppCompatActivity implements View.OnClickListen
                     case R.id.radio_server:
                         mClientLayout.setVisibility(View.GONE);
                         mServerLayout.setVisibility(View.VISIBLE);
+                        disconnect = false;
                         initServer();
                         break;
                     case R.id.radio_disconnect:
+                        if (clientSocket != null) {
+                            disconnect = true;
+                            clientSocket.disconnect();
+                        }
                         break;
                 }
             }
@@ -104,13 +128,9 @@ public class NetActivity extends AppCompatActivity implements View.OnClickListen
             Toast.makeText(this, "请输入ip", Toast.LENGTH_SHORT).show();
             return;
         }
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                clientSocket = new ClientSocket();
-                clientSocket.createSocket(address, mHandler);
-            }
-        }).start();
+        clientSocket = new ClientSocket(mHandler, address);
+        new Thread(clientSocket).start();
+
     }
 
 
@@ -130,10 +150,9 @@ public class NetActivity extends AppCompatActivity implements View.OnClickListen
 
     @Override
     public void onClick(View v) {
-        switch (v.getId()) {
-            case R.id.connect:
-                initClient();
-                break;
+        if (v.getId() == R.id.connect) {
+            initClient();
         }
+
     }
 }

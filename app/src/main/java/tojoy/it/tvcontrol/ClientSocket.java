@@ -15,16 +15,21 @@ import java.net.UnknownHostException;
  * @Author: songdaren
  * @CreateDate: 2020/6/6 1:08 PM
  */
-public class ClientSocket {
+public class ClientSocket implements Runnable {
     private String TAG = "songmingzhan-ClientSocket";
     private Socket mSocket;
-    private boolean isConnected = false;
     private DataOutputStream output = null;
-    //操作类型 0 空闲
-    private volatile int operator = 0;
+    private volatile int operator = 0;//操作类型 0 空闲
     private KeepLive mKeepLive;
+    private Handler mHandler;
+    private String ip;
 
-    public void createSocket(String ip, Handler handler) {
+    public ClientSocket(Handler mHandler, String ip) {
+        this.mHandler = mHandler;
+        this.ip = ip;
+    }
+
+    public void connect() {
         try {
             if (mSocket == null || mSocket.isClosed())
                 mSocket = new Socket();
@@ -32,7 +37,8 @@ public class ClientSocket {
             mSocket.connect(new InetSocketAddress(ip, TvSocket.port));
             mSocket.setSoTimeout(50000);
             mSocket.setKeepAlive(true);
-            handler.sendEmptyMessage(mSocket.isConnected() ? 2 : 0);
+            mHandler.removeMessages(3);
+            mHandler.sendEmptyMessage(mSocket.isConnected() ? 2 : 0);
             output = new DataOutputStream(mSocket.getOutputStream());
             mKeepLive = new KeepLive();
             mKeepLive.start();
@@ -89,10 +95,10 @@ public class ClientSocket {
         } catch (IOException e) {
             LogUtil.logd(TAG, "writeAudio: " + e);
             e.printStackTrace();
+            mHandler.sendEmptyMessage(1);
             try {
                 mSocket.close();
                 output.close();
-                isConnected = false;
 
             } catch (IOException e1) {
                 e.printStackTrace();
@@ -101,6 +107,11 @@ public class ClientSocket {
         } catch (Exception e) {
             LogUtil.logd(TAG, "writeAudio: " + e);
         }
+    }
+
+    @Override
+    public void run() {
+        connect();
     }
 
     private class KeepLive extends Thread {
@@ -114,24 +125,36 @@ public class ClientSocket {
                         bt[0] = 2;
                         output.write(bt, 0, bt.length);
                         output.flush();
-                        LogUtil.logd(TAG, "KeepLive--1: ");
+                        LogUtil.logd(TAG, "KeepLive--心跳: ");
                     }
                     Thread.sleep(2000);
                 }
             } catch (IOException e) {
+                mHandler.sendEmptyMessage(1);
                 e.printStackTrace();
-                LogUtil.logd(TAG, "KeepLive1:" + e);
+                LogUtil.logd(TAG, "KeepLive1---心跳异常" + e);
                 try {
                     mSocket.close();
                     output.close();
-                    isConnected = false;
-
                 } catch (Exception e1) {
                     e.printStackTrace();
                     LogUtil.logd(TAG, "KeepLive2: " + e1);
                 }
             } catch (Exception e) {
                 LogUtil.logd(TAG, "KeepLive3: " + e);
+            }
+        }
+    }
+
+    //断开链接
+    public void disconnect() {
+        if (mSocket != null && mSocket.isConnected()) {
+            try {
+                mSocket.close();
+                output.close();
+                mHandler.sendEmptyMessage(1);
+            } catch (IOException e) {
+                e.printStackTrace();
             }
         }
     }
