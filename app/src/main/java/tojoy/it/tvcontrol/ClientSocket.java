@@ -78,8 +78,7 @@ public class ClientSocket {
                 output.flush();
                 byte[] bt = new byte[1024 * 2];
                 int len = 0;
-                bt[0] = 1;
-                while ((len = RecoderUtils.newInstance().read(bt, 0, bt.length - 1)) > 0) {
+                while ((len = RecoderUtils.newInstance().read(bt, 0, bt.length)) > 0) {
                     output.write(bt, 0, len);
                     output.flush();
                     LogUtil.logd(TAG, "writeAudio--->len: " + len);
