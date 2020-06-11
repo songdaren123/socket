@@ -1,7 +1,6 @@
 package tojoy.it.tvcontrol;
 
 import android.os.Handler;
-import android.util.Log;
 
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -16,7 +15,7 @@ import java.net.UnknownHostException;
  * @CreateDate: 2020/6/6 1:08 PM
  */
 public class ClientSocket implements Runnable {
-    private String TAG = "songmingzhan-ClientSocket";
+    private String TAG = this.getClass().getSimpleName();
     private Socket mSocket;
     private DataOutputStream output = null;
     private volatile int operator = 0;//操作类型 0 空闲
@@ -33,7 +32,6 @@ public class ClientSocket implements Runnable {
         try {
             if (mSocket == null || mSocket.isClosed())
                 mSocket = new Socket();
-            LogUtil.logd(TAG, "isClosed:" + mSocket.isClosed());
             mSocket.connect(new InetSocketAddress(ip, TvSocket.port));
             mSocket.setSoTimeout(50000);
             mSocket.setKeepAlive(true);
@@ -43,12 +41,13 @@ public class ClientSocket implements Runnable {
             mKeepLive = new KeepLive();
             mKeepLive.start();
         } catch (UnknownHostException e) {
+            LogUtil.logd(TAG, "connect:UnknownHostException--> " + e);
             try {
                 mSocket.close();
                 mSocket = null;
             } catch (IOException e1) {
                 e1.printStackTrace();
-                LogUtil.logd(TAG, "createSocket: " + e1);
+                LogUtil.logd(TAG, "connect:IOException--> " + e1);
             }
             e.printStackTrace();
         } catch (IOException e) {
@@ -59,7 +58,7 @@ public class ClientSocket implements Runnable {
             } catch (IOException e1) {
                 e1.printStackTrace();
             }
-            LogUtil.logd(TAG, "IOException1:" + e);
+            LogUtil.logd(TAG, "connect:IOException:-->" + e);
         }
     }
 
@@ -73,27 +72,25 @@ public class ClientSocket implements Runnable {
     }
 
     public void writeAudio() {
-        LogUtil.logd(TAG, "writeAudio--1: ");
+        LogUtil.logd(TAG, "start write ");
         try {
-            LogUtil.logd(TAG, "writeAudio--mSocket: " + mSocket + "-----" + mSocket.isConnected());
             if (mSocket != null && mSocket.isConnected()) {
                 operator = 1;
-                byte[] cmd = new byte[2];
-                cmd[0] = 1;
-                output.write(cmd, 0, cmd.length);
-                output.flush();
+                byte cmd = 1;
+                sendCmd(cmd);
                 byte[] bt = new byte[1024 * 2];
                 int len = 0;
                 while ((len = RecoderUtils.newInstance().read(bt, 0, bt.length)) > 0) {
                     output.write(bt, 0, len);
                     output.flush();
-                    LogUtil.logd(TAG, "writeAudio--->len: " + len);
                 }
                 operator = 0;
+            } else {
+                mHandler.sendEmptyMessage(1);
             }
 
         } catch (IOException e) {
-            LogUtil.logd(TAG, "writeAudio: " + e);
+            LogUtil.logd(TAG, "writeAudio: IOException-->" + e);
             e.printStackTrace();
             mHandler.sendEmptyMessage(1);
             try {
@@ -102,11 +99,39 @@ public class ClientSocket implements Runnable {
 
             } catch (IOException e1) {
                 e.printStackTrace();
-                LogUtil.logd(TAG, "writeAudio: " + e1);
+                LogUtil.logd(TAG, "writeAudio: IOException-->" + e1);
             }
         } catch (Exception e) {
-            LogUtil.logd(TAG, "writeAudio: " + e);
+            LogUtil.logd(TAG, "writeAudio: Exception-->" + e);
         }
+    }
+
+    /**
+     * 发送信令
+     *
+     * @param cmd 2 心跳 1，实时音频
+     */
+    private void sendCmd(byte cmd) {
+        LogUtil.logd(TAG, "sendCmd:" + cmd);
+        try {
+            byte[] bt = new byte[2];
+            bt[0] = cmd;
+            output.write(bt, 0, bt.length);
+            output.flush();
+        } catch (IOException e) {
+            mHandler.sendEmptyMessage(1);
+            LogUtil.logd(TAG, "sendCmd: IOException-->" + e);
+            e.printStackTrace();
+            try {
+                mSocket.close();
+                output.close();
+            } catch (Exception e1) {
+                LogUtil.logd(TAG, "sendCmd: Exception-->" + e1);
+            }
+        } catch (Exception e) {
+            LogUtil.logd(TAG, "sendCmd: Exception-->" + e);
+        }
+
     }
 
     @Override
@@ -118,31 +143,18 @@ public class ClientSocket implements Runnable {
         @Override
         public void run() {
             super.run();
+            byte cmd = 2;
             try {
                 while (true) {
                     if (output != null && operator == 0) {
-                        byte[] bt = new byte[2];
-                        bt[0] = 2;
-                        output.write(bt, 0, bt.length);
-                        output.flush();
-                        LogUtil.logd(TAG, "KeepLive--心跳: ");
+                        sendCmd(cmd);
                     }
                     Thread.sleep(2000);
                 }
-            } catch (IOException e) {
-                mHandler.sendEmptyMessage(1);
-                e.printStackTrace();
-                LogUtil.logd(TAG, "KeepLive1---心跳异常" + e);
-                try {
-                    mSocket.close();
-                    output.close();
-                } catch (Exception e1) {
-                    e.printStackTrace();
-                    LogUtil.logd(TAG, "KeepLive2: " + e1);
-                }
             } catch (Exception e) {
-                LogUtil.logd(TAG, "KeepLive3: " + e);
+                LogUtil.logd(TAG, "KeepLive: " + e);
             }
+
         }
     }
 

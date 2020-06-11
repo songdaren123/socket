@@ -60,8 +60,7 @@ public class AudioTrackUtils {
         if (mAudioTrackInterface != null) {
             byte[] bt = new byte[1024 * 2];
             len = 0;
-            len = mAudioTrackInterface.getAudioData(bt, 0, bt.length - 1);
-            LogUtil.logd(TAG, "write---->len: " + len);
+            len = mAudioTrackInterface.getAudioData(bt, 0, bt.length);
             track.write(bt, 0, len);
             track.flush();
 

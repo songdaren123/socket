@@ -27,6 +27,10 @@ public class TvSocket {
     private static final int CORE_POOL_SIZE = 5;//核心线程
     private static final int MAX_POOL_SIZE = 20;//最大线程数
     private static final int KEEP_ALIVE_SECONDS = 3;
+    /**
+     * 空闲 0， 正在处理数据 1
+     */
+    private volatile int readSate = 0;
 
 
     public void init(android.os.Handler handler) {
@@ -100,12 +104,14 @@ public class TvSocket {
             try {
                 while (true && isHeartbeat) {
                     byte[] bt = new byte[1024 * 2];
-                    int len = 0;
                     while ((len = inputStream.read(bt, 0, bt.length)) != -1) {
                         if (bt[0] == 1 && len == 2) {
                             LogUtil.logd(TAG, "run: 开始接受音频包");
-                            isHeartbeat = false;
-                            readerAudio();
+                            if (readSate == 0) {
+                                readSate = 1;
+                                isHeartbeat = false;
+                                readerAudio();
+                            }
                             break;
                         } else if (bt[0] == 2 && len == 2) {
                             LogUtil.logd(TAG, "run: 心跳包");
@@ -127,7 +133,7 @@ public class TvSocket {
 
         private void readerAudio() {
             try {
-                int len = 0;
+               len = 0;
                 while (len != -1) {
                     if (audioTrackUtils == null) {
                         audioTrackUtils = new AudioTrackUtils();
@@ -152,6 +158,10 @@ public class TvSocket {
                 LogUtil.logd(TAG, "getAudioData: len-->" + len);
             } catch (Exception e) {
                 LogUtil.logd(TAG, "getAudioData:Exception :" + e);
+            }
+            if (len == 2 || len == -1) {
+                len = -1;
+                readSate = 0;
             }
             return len;
         }
