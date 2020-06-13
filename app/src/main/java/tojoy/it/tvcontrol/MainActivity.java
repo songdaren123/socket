@@ -10,6 +10,9 @@ import android.widget.Button;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
+import tojoy.it.tvcontrol.bluetooth.BlueToothActivity;
+import tojoy.it.tvcontrol.net.NetActivity;
+
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
     private Button mButton1;
     private Button mButton2;

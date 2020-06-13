@@ -1,4 +1,4 @@
-package tojoy.it.tvcontrol;
+package tojoy.it.tvcontrol.bluetooth;
 
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothManager;
@@ -11,6 +11,8 @@ import java.io.DataInputStream;
 import java.io.IOException;
 import java.util.UUID;
 
+import tojoy.it.tvcontrol.utils.AudioTrackUtils;
+
 /**
  * @ClassName: BlueServer
  * @Description: java类作用描述
@@ -21,7 +23,7 @@ class BlueServer {
     private BluetoothAdapter bluetoothAdapter;
     private BluetoothManager bluetoothManager;
     private Handler handler;
-    private String TAG = "songmingzhan--->" + this.getClass().getSimpleName();
+    private String TAG = this.getClass().getSimpleName();
 
     public BlueServer(BluetoothAdapter bluetoothAdapter, BluetoothManager bluetoothManager, Handler handler) {
         this.bluetoothAdapter = bluetoothAdapter;

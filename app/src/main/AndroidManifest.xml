@@ -36,10 +36,10 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <activity
-            android:name=".BlueToothActivity"
+            android:name=".bluetooth.BlueToothActivity"
             android:launchMode="singleTask" />
         <activity
-            android:name=".NetActivity"
+            android:name=".net.NetActivity"
             android:launchMode="singleTask" />
         <activity android:name=".MainActivity">
             <intent-filter>

@@ -1,6 +1,5 @@
-package tojoy.it.tvcontrol;
+package tojoy.it.tvcontrol.bluetooth;
 
-import android.bluetooth.BluetoothA2dp;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
@@ -11,13 +10,16 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Handler;
-import android.util.Log;
 
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+
+import tojoy.it.tvcontrol.utils.LogUtil;
+import tojoy.it.tvcontrol.utils.RecoderUtils;
 
 /**
  * @ClassName: BlueClient
@@ -26,7 +28,7 @@ import java.util.UUID;
  * @CreateDate: 2020/6/6 5:55 PM
  */
 class BlueClient {
-    private String TAG = "songmingzhan---->";
+    private String TAG = this.getClass().getSimpleName();
     private BluetoothAdapter bluetoothAdapter;
     private BluetoothManager bluetoothManager;
     private BluetoothDevice mBluetoothDevice;
@@ -34,7 +36,6 @@ class BlueClient {
     private UUID mUUID = null;
     private Context context;
     private Handler handler;
-//    private String name = "rksdk";大屏蓝牙
     private String name = "songdaren";//
 
     public BlueClient(BluetoothAdapter bluetoothAdapter, BluetoothManager bluetoothManager, Context context, Handler handler) {
@@ -57,18 +58,17 @@ class BlueClient {
 
 
     public void start() {
-        Log.d(TAG, "start: ");
+        LogUtil.logd(TAG, "start: ");
         if (bluetoothAdapter != null) {
             mUUID = UUID.fromString("fa87c0d0-afac-11de-8a39-0800200c9a66");
-            UUID uuids[] = new UUID[]{mUUID};
             bluetoothAdapter.startDiscovery();
             requestProfileConnectionState(context);
             Set<BluetoothDevice> devices = bluetoothAdapter.getBondedDevices();
             for (BluetoothDevice device : devices) {
-                Log.d(TAG, "start: " + device.getName());
+                LogUtil.logd(TAG, "start: " + device.getName());
                 if (device.getName().equals(name)) {
                     mBluetoothDevice = device;
-                    Log.d(TAG, "start: 去连接");
+                    LogUtil.logd(TAG, "start: 去连接");
                     new Thread(new Runnable() {
                         @Override
                         public void run() {
@@ -86,7 +86,10 @@ class BlueClient {
         //检测连接状态：
         int a2dp = bluetoothAdapter.getProfileConnectionState(BluetoothProfile.A2DP);
         int gatt = bluetoothAdapter.getProfileConnectionState(BluetoothProfile.GATT);
-        int sap = bluetoothAdapter.getProfileConnectionState(BluetoothProfile.SAP);
+        int sap = 0;
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+            sap = bluetoothAdapter.getProfileConnectionState(BluetoothProfile.SAP);
+        }
         //据是否有连接获取已连接的设备
         int flag = -1;
         if (a2dp == BluetoothProfile.STATE_CONNECTED) {
@@ -114,9 +117,9 @@ class BlueClient {
                         //获取BluetoothDevice
                         mBluetoothDevice = mDevices.get(i);
                         //调用创建Socket连接
-                        Log.d(TAG, "ProxyListener: " + mBluetoothDevice.getName());
+                        LogUtil.logd(TAG, "ProxyListener: " + mBluetoothDevice.getName());
                         if (mBluetoothDevice.getName().equals(name)) {
-                            Log.d(TAG, "ProxyListener: " + mBluetoothDevice.getUuids());
+                            LogUtil.logd(TAG, "ProxyListener: " + mBluetoothDevice.getUuids());
                             new Thread(new Runnable() {
                                 @Override
                                 public void run() {
@@ -138,59 +141,15 @@ class BlueClient {
     }
 
 
-    private class FoundDeviceReceiver extends BroadcastReceiver {
-
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            String action = intent.getAction();
-            if (BluetoothA2dp.ACTION_CONNECTION_STATE_CHANGED.equals(action)
-                    || BluetoothAdapter.ACTION_CONNECTION_STATE_CHANGED.equals(action)) {
-
-                int a2dpState = intent.getIntExtra(BluetoothA2dp.EXTRA_STATE, -1);
-                int adapterState = intent.getIntExtra(BluetoothAdapter.EXTRA_CONNECTION_STATE, BluetoothAdapter.ERROR);
-                if (BluetoothA2dp.STATE_CONNECTED == a2dpState || BluetoothAdapter.STATE_CONNECTED == adapterState) {//连接成功
-                    //获取BluetoothDevice
-                    mBluetoothDevice = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                    Log.d("", mBluetoothDevice.getAddress());
-                    //调用创建Socket连接
-                    new Thread(new Runnable() {
-                        @Override
-                        public void run() {
-                            connectDevice();
-                        }
-                    }).start();
-
-                } else if (BluetoothA2dp.STATE_CONNECTING == a2dpState) {//正在连接
-                } else if (BluetoothA2dp.STATE_DISCONNECTED == a2dpState) {//取消连接
-
-                }
-            }
-            if (action.equals(BluetoothAdapter.ACTION_STATE_CHANGED)) {
-                int state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE,
-                        BluetoothAdapter.ERROR);
-                switch (state) {
-                    case BluetoothAdapter.STATE_OFF:
-                        break;
-                    case BluetoothAdapter.STATE_TURNING_OFF:
-                        break;
-                    case BluetoothAdapter.STATE_ON:
-                        break;
-                    case BluetoothAdapter.STATE_TURNING_ON:
-                        break;
-                }
-            }
-        }
-    }
-
     private void connectDevice() {
         bluetoothAdapter.cancelDiscovery();
-        BluetoothSocket mmSocket = null;
+        BluetoothSocket mmSocket;
         try {
             mmSocket = mBluetoothDevice.createRfcommSocketToServiceRecord(mUUID);
             mmSocket.connect();
             mmSocket.getOutputStream();
             handler.sendEmptyMessage(mmSocket.isConnected() ? 2 : 0);
-            Log.d(TAG, "connectDevice: " + mmSocket.isConnected());
+            LogUtil.logd(TAG, "connectDevice: " + mmSocket.isConnected());
             if (mmSocket.isConnected()) {
                 DataOutputStream output = new DataOutputStream(mmSocket.getOutputStream());
                 while (true) {
@@ -205,9 +164,8 @@ class BlueClient {
         } catch (IOException e) {
             e.printStackTrace();
         } catch (Exception e) {
-            Log.d(TAG, "connectDevice: " + e);
+            LogUtil.logd(TAG, "connectDevice: " + e);
         }
-
     }
 
     private class BlueBroadcastReceiver extends BroadcastReceiver {
@@ -217,11 +175,11 @@ class BlueClient {
             if (intent.getAction().equals(BluetoothDevice.ACTION_FOUND)) {
                 BluetoothDevice device = intent
                         .getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                Log.d(TAG, "onReceive: " + device.getName());
+                LogUtil.logd(TAG, "onReceive: " + Objects.requireNonNull(device).getName());
                 if (device.getName().equals(name)) {
                     bluetoothAdapter.cancelDiscovery();
                     mBluetoothDevice = device;
-                    Log.d(TAG, "onReceive: " + device.getUuids());
+                    LogUtil.logd(TAG, String.format("onReceive: %s", device.getUuids()));
                     new Thread(new Runnable() {
                         @Override
                         public void run() {

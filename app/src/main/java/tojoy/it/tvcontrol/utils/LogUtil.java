@@ -1,4 +1,4 @@
-package tojoy.it.tvcontrol;
+package tojoy.it.tvcontrol.utils;
 
 import android.util.Log;
 
@@ -8,10 +8,10 @@ import android.util.Log;
  * @Author: songdaren
  * @CreateDate: 2020/6/8 4:19 PM
  */
-class LogUtil {
-    private static String TAG = "songmingzhan";
+public class LogUtil {
 
     public static void logd(String tag, String msg) {
+        String TAG = "songmingzhan";
         Log.d(TAG + tag, msg);
     }
 }

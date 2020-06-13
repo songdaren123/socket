@@ -1,4 +1,4 @@
-package tojoy.it.tvcontrol;
+package tojoy.it.tvcontrol.net;
 
 import android.content.Context;
 import android.net.wifi.WifiInfo;

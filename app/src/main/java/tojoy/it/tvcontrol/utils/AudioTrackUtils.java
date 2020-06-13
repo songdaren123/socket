@@ -1,4 +1,4 @@
-package tojoy.it.tvcontrol;
+package tojoy.it.tvcontrol.utils;
 
 import android.media.AudioFormat;
 import android.media.AudioManager;
@@ -15,23 +15,23 @@ import androidx.annotation.NonNull;
  */
 public class AudioTrackUtils {
     private String TAG = this.getClass().getSimpleName();
-    private AudioTrack track;
+    private AudioTrack mAudioTrack;
     private static AudioTrackInterface mAudioTrackInterface;
     private volatile int len = 0;
 
     public AudioTrackUtils() {
         int bufferSize = AudioTrack.getMinBufferSize(16000, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT);
-        track = new AudioTrack(AudioManager.STREAM_MUSIC, 16000, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT, bufferSize, AudioTrack.MODE_STREAM);
+        mAudioTrack = new AudioTrack(AudioManager.STREAM_MUSIC, 16000, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT, bufferSize, AudioTrack.MODE_STREAM);
     }
 
     public synchronized void play() {
-        track.play();
+        mAudioTrack.play();
     }
 
     public synchronized void stop() {
         try {
-            track.stop();
-            track.release();
+            mAudioTrack.stop();
+            mAudioTrack.release();
             len = -1;
         } catch (Exception e) {
             Log.e("Exception", e.toString());
@@ -39,18 +39,8 @@ public class AudioTrackUtils {
     }
 
     public synchronized void write(@NonNull byte[] audioData, int offsetInBytes, int sizeInBytes) {
-        track.write(audioData, offsetInBytes, sizeInBytes);
-        track.flush();
-    }
-
-    public boolean onPlay() {
-        LogUtil.logd(TAG, "onPlay: ");
-        play();
-        return true;
-    }
-
-    public void onStop() {
-        stop();
+        mAudioTrack.write(audioData, offsetInBytes, sizeInBytes);
+        mAudioTrack.flush();
     }
 
 
@@ -61,8 +51,8 @@ public class AudioTrackUtils {
             byte[] bt = new byte[1024 * 2];
             len = 0;
             len = mAudioTrackInterface.getAudioData(bt, 0, bt.length);
-            track.write(bt, 0, len);
-            track.flush();
+            mAudioTrack.write(bt, 0, len);
+            mAudioTrack.flush();
 
         }
         return len;

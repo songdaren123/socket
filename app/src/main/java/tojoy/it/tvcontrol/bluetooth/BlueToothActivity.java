@@ -1,4 +1,4 @@
-package tojoy.it.tvcontrol;
+package tojoy.it.tvcontrol.bluetooth;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -19,24 +19,23 @@ import android.widget.LinearLayout;
 import android.widget.RadioGroup;
 import android.widget.TextView;
 
+import tojoy.it.tvcontrol.R;
+import tojoy.it.tvcontrol.utils.RecoderUtils;
+
 public class BlueToothActivity extends AppCompatActivity implements View.OnClickListener {
     BlueClient client;
     private int REQUEST_ENABLE_BT = 10;
     private BluetoothAdapter bluetoothAdapter;
     private BluetoothManager bluetoothManager;
-
-    private static final int MSG_RECONNECTD = 1;
-    private String TAG = "songmingzhan-NetActivity";
     private RadioGroup mRadioGroup;
     private TextView mConnectState;
-    private TextView serverIp;
-    private EditText editText;
     private LinearLayout mServerLayout;
     private LinearLayout mClientLayout;
     private Button mVoice;
     private Button mConnect;
     public static int COUNT = 0;
     private BlueServer server;
+    @SuppressLint("HandlerLeak")
     private Handler mHandler = new Handler() {
         @SuppressLint("HandlerLeak")
         @Override
@@ -65,6 +64,7 @@ public class BlueToothActivity extends AppCompatActivity implements View.OnClick
         initView();
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     private void initView() {
         mConnectState = findViewById(R.id.connect_state);
         mClientLayout = findViewById(R.id.net_client);
@@ -72,8 +72,6 @@ public class BlueToothActivity extends AppCompatActivity implements View.OnClick
         mRadioGroup = findViewById(R.id.rg_radiogroup);
         mVoice = findViewById(R.id.button_voice);
         mConnect = findViewById(R.id.connect);
-        serverIp = findViewById(R.id.net_address);
-        editText = findViewById(R.id.input_address);
         mConnect.setOnClickListener(this);
         mRadioGroup.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
             @Override

@@ -1,4 +1,4 @@
-package tojoy.it.tvcontrol;
+package tojoy.it.tvcontrol.net;
 
 import android.annotation.SuppressLint;
 import android.os.Bundle;
@@ -17,51 +17,54 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
+import tojoy.it.tvcontrol.R;
+import tojoy.it.tvcontrol.utils.RecoderUtils;
+
 public class NetActivity extends AppCompatActivity implements View.OnClickListener {
-    private static final int MSG_RECONNECTD = 1;
-    private RadioGroup mRadioGroup;
+    public static final int MSG_RECONNECTD = 3;
+    public static final int MSG_CONNECTED = 2;
+    public static final int MSG_DISCONNECT = 1;
+    private static final int CONNECT_MAX = 6;
     private TextView mConnectState;
     private TextView serverIp;
     private EditText editText;
     private LinearLayout mServerLayout;
     private LinearLayout mClientLayout;
-    private Button mVoice;
-    private Button mConnect;
-    //    public static int COUNT = 0;
-    ClientSocket clientSocket;
-    public static final int CONNECT_MAX = 6;
+    private ClientSocket clientSocket;
     private int reconnect_count = 0;
     private boolean disconnect = false;
+    @SuppressLint("HandlerLeak")
     private Handler mHandler = new Handler() {
         @SuppressLint("HandlerLeak")
         @Override
         public void handleMessage(@NonNull Message msg) {
             super.handleMessage(msg);
             switch (msg.what) {
-                case 3:
+                case MSG_RECONNECTD:
                     if (clientSocket != null) {
                         new Thread(clientSocket).start();
                     }
                     if (reconnect_count < CONNECT_MAX) {
                         reconnect_count++;
-                        mHandler.sendEmptyMessageDelayed(3, 3000);
+                        mHandler.sendEmptyMessageDelayed(MSG_RECONNECTD, 50000);
                     } else {
                         mConnectState.setText("重连" + reconnect_count);
                     }
                     break;
-                case 2:
+                case MSG_CONNECTED:
                     mConnectState.setText("连接成功");
                     break;
-                case 1:
+                case MSG_DISCONNECT:
                     reconnect_count = 0;
                     if (!disconnect)
-                        mHandler.sendEmptyMessageDelayed(3, 2000);
+                        mHandler.sendEmptyMessageDelayed(MSG_RECONNECTD, 2000);
                     mConnectState.setText("链接断开");
                     break;
             }
         }
     };
 
+    @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -69,9 +72,9 @@ public class NetActivity extends AppCompatActivity implements View.OnClickListen
         mConnectState = findViewById(R.id.connect_state);
         mClientLayout = findViewById(R.id.net_client);
         mServerLayout = findViewById(R.id.net_server);
-        mRadioGroup = findViewById(R.id.rg_radiogroup);
-        mVoice = findViewById(R.id.button_voice);
-        mConnect = findViewById(R.id.connect);
+        RadioGroup mRadioGroup = findViewById(R.id.rg_radiogroup);
+        Button mVoice = findViewById(R.id.button_voice);
+        Button mConnect = findViewById(R.id.connect);
         serverIp = findViewById(R.id.net_address);
         editText = findViewById(R.id.input_address);
         mConnect.setOnClickListener(this);

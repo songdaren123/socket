@@ -1,4 +1,4 @@
-package tojoy.it.tvcontrol;
+package tojoy.it.tvcontrol.net;
 
 import android.os.Handler;
 
@@ -7,6 +7,9 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
+
+import tojoy.it.tvcontrol.utils.LogUtil;
+import tojoy.it.tvcontrol.utils.RecoderUtils;
 
 /**
  * @ClassName: ClientSocket
@@ -35,8 +38,8 @@ public class ClientSocket implements Runnable {
             mSocket.connect(new InetSocketAddress(ip, TvSocket.port));
             mSocket.setSoTimeout(50000);
             mSocket.setKeepAlive(true);
-            mHandler.removeMessages(3);
-            mHandler.sendEmptyMessage(mSocket.isConnected() ? 2 : 0);
+            mHandler.removeMessages(NetActivity.MSG_RECONNECTD);
+            mHandler.sendEmptyMessage(mSocket.isConnected() ? NetActivity.MSG_CONNECTED : NetActivity.MSG_DISCONNECT);
             output = new DataOutputStream(mSocket.getOutputStream());
             mKeepLive = new KeepLive();
             mKeepLive.start();
@@ -86,13 +89,13 @@ public class ClientSocket implements Runnable {
                 }
                 operator = 0;
             } else {
-                mHandler.sendEmptyMessage(1);
+                mHandler.sendEmptyMessage(NetActivity.MSG_DISCONNECT);
             }
 
         } catch (IOException e) {
             LogUtil.logd(TAG, "writeAudio: IOException-->" + e);
             e.printStackTrace();
-            mHandler.sendEmptyMessage(1);
+            mHandler.sendEmptyMessage(NetActivity.MSG_DISCONNECT);
             try {
                 mSocket.close();
                 output.close();
@@ -164,7 +167,7 @@ public class ClientSocket implements Runnable {
             try {
                 mSocket.close();
                 output.close();
-                mHandler.sendEmptyMessage(1);
+                mHandler.sendEmptyMessage(NetActivity.MSG_DISCONNECT);
             } catch (IOException e) {
                 e.printStackTrace();
             }

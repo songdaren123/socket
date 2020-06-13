@@ -1,4 +1,4 @@
-package tojoy.it.tvcontrol;
+package tojoy.it.tvcontrol.utils;
 
 import android.media.AudioFormat;
 import android.media.AudioRecord;
@@ -15,16 +15,14 @@ import androidx.annotation.NonNull;
  */
 public class RecoderUtils {
     private String TAG = this.getClass().getSimpleName();
+    private static final int sampleRateInHz = 16000;
+    private static final int bufferSizeInBytes = 1024 * 2;
+    private static final int audioSource = MediaRecorder.AudioSource.MIC;
+    private static final int channelConfig = AudioFormat.CHANNEL_IN_MONO;
+    private static final int audioFormat = AudioFormat.ENCODING_PCM_16BIT;
     private static RecoderUtils instance;
     private AudioRecord audioRecord;
-    //采样率的修改会影响语音识别的效果
-    private int sampleRateInHz = 16000;
-    private int bufferSizeInBytes = 1024 * 2;
-    private int audioSource = MediaRecorder.AudioSource.MIC;
-    private int channelConfig = AudioFormat.CHANNEL_IN_MONO;
-    private int audioFormat = AudioFormat.ENCODING_PCM_16BIT;
-    private volatile boolean isRecoder = false;
-
+    private volatile boolean isRecorder = false;
 
     public static synchronized RecoderUtils newInstance() {
         if (instance == null) {
@@ -38,22 +36,22 @@ public class RecoderUtils {
     }
 
     public void startRecoder() {
-        if (!isRecoder) {
+        if (!isRecorder) {
             try {
-                isRecoder = true;
+                isRecorder = true;
                 audioRecord = initAudioRecoder();
                 audioRecord.startRecording();
             } catch (Exception e) {
                 Log.d(TAG, "startRecoder: " + e);
                 audioRecord = null;
-                isRecoder = false;
+                isRecorder = false;
             }
         }
     }
 
     public int read(@NonNull byte[] bytes, int offsetInBytes, int sizeInBytes) {
         try {
-            if (audioRecord != null && isRecoder) {
+            if (audioRecord != null && isRecorder) {
                 return audioRecord.read(bytes, offsetInBytes, sizeInBytes);
             }
             return -1;
@@ -66,10 +64,6 @@ public class RecoderUtils {
     }
 
 
-    public boolean isRecoder() {
-        return isRecoder;
-    }
-
     /**
      * 停止录音
      */
@@ -79,7 +73,7 @@ public class RecoderUtils {
             if (audioRecord != null) {
                 audioRecord.stop();
                 audioRecord.release();
-                isRecoder = false;
+                isRecorder = false;
                 audioRecord = null;
             }
         } catch (Exception e) {

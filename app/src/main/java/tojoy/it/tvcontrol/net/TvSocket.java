@@ -1,4 +1,4 @@
-package tojoy.it.tvcontrol;
+package tojoy.it.tvcontrol.net;
 
 
 import androidx.annotation.NonNull;
@@ -12,6 +12,9 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import tojoy.it.tvcontrol.utils.AudioTrackUtils;
+import tojoy.it.tvcontrol.utils.LogUtil;
 
 /**
  * @ClassName: ServerSocket
@@ -49,7 +52,7 @@ public class TvSocket {
             while (true) {
                 Socket socket = serverSocket.accept();
                 LogUtil.logd(TAG, "accept: ");
-                handler.sendEmptyMessage(2);
+                handler.sendEmptyMessage(NetActivity.MSG_CONNECTED);
                 sBackupExecutor.execute(new ClientThread(socket));
             }
         }
@@ -87,11 +90,8 @@ public class TvSocket {
         @Override
         public void run() {
             try {
-                while (true) {
-                    inputStream = new DataInputStream(socket.getInputStream());
-                    accpetHeartbeat();
-
-                }
+                inputStream = new DataInputStream(socket.getInputStream());
+                accpetHeartbeat();
             } catch (Exception e) {
                 LogUtil.logd(TAG, "Exception: " + e);
             }
@@ -111,8 +111,8 @@ public class TvSocket {
                                 readSate = 1;
                                 isHeartbeat = false;
                                 readerAudio();
+                                break;
                             }
-                            break;
                         } else if (bt[0] == 2 && len == 2) {
                             LogUtil.logd(TAG, "run: 心跳包");
                             if (audioTrackUtils != null) {
@@ -133,7 +133,7 @@ public class TvSocket {
 
         private void readerAudio() {
             try {
-               len = 0;
+                len = 0;
                 while (len != -1) {
                     if (audioTrackUtils == null) {
                         audioTrackUtils = new AudioTrackUtils();

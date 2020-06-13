@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    tools:context=".BlueToothActivity">
+    tools:context=".bluetooth.BlueToothActivity">
 
     <RadioGroup
         android:id="@+id/rg_radiogroup"
