@@ -1,6 +1,8 @@
 package tojoy.it.tvcontrol.net;
 
 import android.annotation.SuppressLint;
+import android.content.Intent;
+import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -9,15 +11,20 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import tojoy.it.tvcontrol.R;
+import tojoy.it.tvcontrol.utils.AppUtil;
+import tojoy.it.tvcontrol.utils.LogUtil;
+import tojoy.it.tvcontrol.utils.QRUtils;
 import tojoy.it.tvcontrol.utils.RecoderUtils;
 
 public class NetActivity extends AppCompatActivity implements View.OnClickListener {
@@ -33,6 +40,7 @@ public class NetActivity extends AppCompatActivity implements View.OnClickListen
     private ClientSocket clientSocket;
     private int reconnect_count = 0;
     private boolean disconnect = false;
+    private ImageView qrImage;
     @SuppressLint("HandlerLeak")
     private Handler mHandler = new Handler() {
         @SuppressLint("HandlerLeak")
@@ -75,8 +83,11 @@ public class NetActivity extends AppCompatActivity implements View.OnClickListen
         RadioGroup mRadioGroup = findViewById(R.id.rg_radiogroup);
         Button mVoice = findViewById(R.id.button_voice);
         Button mConnect = findViewById(R.id.connect);
+        Button scan=findViewById(R.id.bt_scan);
+        scan.setOnClickListener(this);
         serverIp = findViewById(R.id.net_address);
         editText = findViewById(R.id.input_address);
+        qrImage = findViewById(R.id.qr_image);
         mConnect.setOnClickListener(this);
         mRadioGroup.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
             @Override
@@ -131,7 +142,7 @@ public class NetActivity extends AppCompatActivity implements View.OnClickListen
             Toast.makeText(this, "请输入ip", Toast.LENGTH_SHORT).show();
             return;
         }
-        clientSocket = new ClientSocket(mHandler, address);
+        clientSocket = new ClientSocket(mHandler, address,TvSocket.port);
         new Thread(clientSocket).start();
 
     }
@@ -139,6 +150,9 @@ public class NetActivity extends AppCompatActivity implements View.OnClickListen
 
     private void initServer() {
         String ip = NetUtils.getLocalIpAddress(this);
+        String qrURl = new StringBuilder().append("&QR_IP=").append(ip).append("&QR_PORT=").append(TvSocket.port).toString();
+        Bitmap largeQrImage = QRUtils.createQRcodeImage("https://?" + qrURl, AppUtil.dip2px(NetActivity.this, 200), AppUtil.dip2px(NetActivity.this, 200));
+        qrImage.setImageBitmap(largeQrImage);
         if (!TextUtils.isEmpty(ip)) {
             serverIp.setText(ip);
             new Thread(new Runnable() {
@@ -155,7 +169,24 @@ public class NetActivity extends AppCompatActivity implements View.OnClickListen
     public void onClick(View v) {
         if (v.getId() == R.id.connect) {
             initClient();
+
+        }
+        else if(v.getId()==R.id.bt_scan){
+            Intent intent = new Intent(this, CaptureActivity.class);
+            startActivityForResult(intent, 1);
         }
 
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        LogUtil.logd("TAG", "resultCode" + resultCode);
+        if (resultCode == 3) {
+            int port = data.getIntExtra("port", 0);
+            String address = data.getStringExtra("ip");
+            clientSocket = new ClientSocket(mHandler, address, port);
+            new Thread(clientSocket).start();
+        }
     }
 }

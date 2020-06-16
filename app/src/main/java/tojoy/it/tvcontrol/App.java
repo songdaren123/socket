@@ -5,6 +5,7 @@ import android.content.Context;
 import android.text.TextUtils;
 
 import com.tencent.bugly.crashreport.CrashReport;
+import com.uuzuche.lib_zxing.activity.ZXingLibrary;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -29,6 +30,7 @@ public class App extends Application {
         CrashReport.UserStrategy strategy = new CrashReport.UserStrategy(context);
         strategy.setUploadProcess(processName == null || processName.equals(packageName));
         CrashReport.initCrashReport(getApplicationContext(), "08bc35ad84", true);
+        ZXingLibrary.initDisplayOpinion(this);
     }
 
     /**

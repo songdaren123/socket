@@ -1,0 +1,44 @@
+apply plugin: 'com.android.library'
+
+android {
+    compileSdkVersion 28
+    buildToolsVersion '28.0.3'
+
+    defaultConfig {
+        resourcePrefix "zxing_" //给 Module 内的资源名增加前缀, 避免资源名冲突
+        minSdkVersion 16
+        targetSdkVersion 28
+        multiDexEnabled true
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
+    }
+
+    compileOptions {
+        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_1_8
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    androidTestImplementation('androidx.test.espresso:espresso-core:3.1.0-alpha4', {
+        exclude group: 'com.android.support', module: 'support-annotations'
+    })
+    implementation 'androidx.appcompat:appcompat:1.0.0'
+    testImplementation 'junit:junit:4.12'
+    api 'com.google.zxing:core:3.3.3'
+    //implementation project(path: ':module-photo')
+}
+
+ext {
+    PUBLISH_GROUP_ID = 'cn.yipianfengye.android'
+    PUBLISH_ARTIFACT_ID = 'zxing-library'
+    PUBLISH_VERSION = '2.2'
+}
+

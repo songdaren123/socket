@@ -37,4 +37,6 @@ dependencies {
     compile 'com.tencent.bugly:crashreport:latest.release'
     //其中latest.release指代最新Bugly SDK版本号，也可以指定明确的版本号，例如2.1.9
     compile 'com.tencent.bugly:nativecrashreport:latest.release'
+    api project(path: ':zxing_lib')
+    api 'com.google.zxing:core:3.3.3'
 }

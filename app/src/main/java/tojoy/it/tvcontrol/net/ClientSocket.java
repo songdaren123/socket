@@ -25,17 +25,19 @@ public class ClientSocket implements Runnable {
     private KeepLive mKeepLive;
     private Handler mHandler;
     private String ip;
+    private int port;
 
-    public ClientSocket(Handler mHandler, String ip) {
+    public ClientSocket(Handler mHandler, String ip, int port) {
         this.mHandler = mHandler;
         this.ip = ip;
+        this.port = port;
     }
 
     public void connect() {
         try {
             if (mSocket == null || mSocket.isClosed())
                 mSocket = new Socket();
-            mSocket.connect(new InetSocketAddress(ip, TvSocket.port));
+            mSocket.connect(new InetSocketAddress(ip, port));
             mSocket.setSoTimeout(50000);
             mSocket.setKeepAlive(true);
             mHandler.removeMessages(NetActivity.MSG_RECONNECTD);

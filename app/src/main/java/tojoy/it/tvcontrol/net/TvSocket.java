@@ -25,7 +25,7 @@ import tojoy.it.tvcontrol.utils.LogUtil;
 public class TvSocket {
     private String TAG = "TvSocket";
     private ServerSocket serverSocket;
-    public static int port = 6038;
+    public static int port = 6083;
     private static ThreadPoolExecutor sBackupExecutor;
     private static final int CORE_POOL_SIZE = 5;//核心线程
     private static final int MAX_POOL_SIZE = 20;//最大线程数
@@ -43,7 +43,7 @@ public class TvSocket {
             accept(handler);
         } catch (IOException e) {
             e.printStackTrace();
-            LogUtil.logd(TAG, "init: ");
+            LogUtil.logd(TAG, "init: "+e);
         }
     }
 

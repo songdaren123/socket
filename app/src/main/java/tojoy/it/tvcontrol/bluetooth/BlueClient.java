@@ -179,7 +179,7 @@ class BlueClient {
                 if (device.getName().equals(name)) {
                     bluetoothAdapter.cancelDiscovery();
                     mBluetoothDevice = device;
-                    LogUtil.logd(TAG, String.format("onReceive: %s", device.getUuids()));
+//                    LogUtil.logd(TAG, String.format("onReceive: %s", device.getUuids()));
                     new Thread(new Runnable() {
                         @Override
                         public void run() {
