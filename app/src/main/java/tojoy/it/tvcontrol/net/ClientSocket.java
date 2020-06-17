@@ -43,6 +43,9 @@ public class ClientSocket implements Runnable {
             mHandler.removeMessages(NetActivity.MSG_RECONNECTD);
             mHandler.sendEmptyMessage(mSocket.isConnected() ? NetActivity.MSG_CONNECTED : NetActivity.MSG_DISCONNECT);
             output = new DataOutputStream(mSocket.getOutputStream());
+            byte state = 3;
+            sendCmd(state);
+            sendString("老板001");
             mKeepLive = new KeepLive();
             mKeepLive.start();
         } catch (UnknownHostException e) {
@@ -111,10 +114,30 @@ public class ClientSocket implements Runnable {
         }
     }
 
+    public void sendString(String str) {
+        try {
+            output.writeUTF(str);
+            output.flush();
+        } catch (IOException e) {
+            mHandler.sendEmptyMessage(1);
+            LogUtil.logd(TAG, "sendCmd: IOException-->" + e);
+            e.printStackTrace();
+            try {
+                mSocket.close();
+                output.close();
+            } catch (Exception e1) {
+                LogUtil.logd(TAG, "sendCmd: Exception-->" + e1);
+            }
+        } catch (Exception e) {
+            LogUtil.logd(TAG, "sendCmd: Exception-->" + e);
+        }
+
+    }
+
     /**
      * 发送信令
      *
-     * @param cmd 2 心跳 1，实时音频
+     * @param cmd 2 心跳 1，实时音频 3 设备名称
      */
     private void sendCmd(byte cmd) {
         LogUtil.logd(TAG, "sendCmd:" + cmd);
