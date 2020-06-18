@@ -30,7 +30,9 @@ public class ClientSocket implements Runnable {
     private Handler mHandler;
     private String ip;
     private int port;
-    private int len;
+    private volatile boolean isAccept = false;
+    private volatile boolean pauseRead = false;
+//    private int len;
 
     public ClientSocket(Handler mHandler, String ip, int port) {
         this.mHandler = mHandler;
@@ -45,18 +47,15 @@ public class ClientSocket implements Runnable {
             mSocket.connect(new InetSocketAddress(ip, port));
             mSocket.setSoTimeout(50000);
             mSocket.setKeepAlive(true);
-            mHandler.removeMessages(NetActivity.MSG_RECONNECTD);
-            mHandler.sendEmptyMessage(mSocket.isConnected() ? NetActivity.MSG_CONNECTED : NetActivity.MSG_DISCONNECT);
+//            mHandler.sendEmptyMessage(mSocket.isConnected() ? NetActivity.MSG_CONNECTED : NetActivity.MSG_DISCONNECT);
             output = new DataOutputStream(mSocket.getOutputStream());
             inputStream = new DataInputStream(mSocket.getInputStream());
-
             byte state = 3;
-            sendCmd(state);
-            sendString("老板001");
-            mKeepLive = new KeepLive();
-            mKeepLive.start();
             readerThread = new ReaderThread();
             readerThread.start();
+            sendCmd(state);
+            sendString("老板001");//请求连接
+
         } catch (UnknownHostException e) {
             LogUtil.logd(TAG, "connect:UnknownHostException--> " + e);
             try {
@@ -80,12 +79,15 @@ public class ClientSocket implements Runnable {
     }
 
     public void startRecoder() {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                writeAudio();
-            }
-        }).start();
+        if (isAccept) {
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    writeAudio();
+                }
+            }).start();
+        }
+
     }
 
     public void writeAudio() {
@@ -199,28 +201,40 @@ public class ClientSocket implements Runnable {
         @Override
         public void run() {
             super.run();
-            while (output != null) {
-                try {
-                    while (true) {
-                        byte[] bt = new byte[1024 * 2];
-                        while ((len = inputStream.read(bt, 0, bt.length)) != -1) {
-                            if (bt[0] == 7 && len == 2) {//已有用户链接，是否下线
-                                LogUtil.logd(TAG, "已有用户链接");
-                                readerDetail(7);
+            try {
+                while (true) {
+                    LogUtil.logd(TAG, "有没有");
+                    int len = 0;
+                    byte[] bt = new byte[1024 * 2];
+                    while (!pauseRead && (len = inputStream.read(bt, 0, bt.length)) != -1) {
+                        LogUtil.logd(TAG, "有没有-----");
+                        if (bt[0] == 7 && len == 2) {//已有用户链接，是否下线
+                            pauseRead = true;
+                            LogUtil.logd(TAG, "已有用户链接");
+                            readerDetail(7);
+                            break;
 
-                            } else if (bt[0] == 8 && len == 2) {//被踢下线，关闭当前链接
-                                LogUtil.logd(TAG, "被踢下线");
-                                readerDetail(8);
-                            }
-
+                        } else if (bt[0] == 8 && len == 2) {//被踢下线，关闭当前链接
+                            LogUtil.logd(TAG, "被踢下线");
+                            isAccept = false;
+                            pauseRead = true;
+                            readerDetail(8);
+                            break;
+                        } else if (bt[0] == 9 && len == 2) {
+                            isAccept = true;
+                            LogUtil.logd(TAG, "可以连接");
+                            mHandler.sendEmptyMessage(NetActivity.MSG_CONNECTED);
+                            mKeepLive = new KeepLive();
+                            mKeepLive.start();
                         }
 
                     }
-                } catch (Exception e) {
-                    LogUtil.logd(TAG, "Exception: " + e);
-                }
 
+                }
+            } catch (Exception e) {
+                LogUtil.logd(TAG, "Exception: " + e);
             }
+
         }
     }
 
@@ -232,6 +246,7 @@ public class ClientSocket implements Runnable {
             msg.what = state;
             msg.obj = name;
             mHandler.sendMessage(msg);
+            pauseRead = false;
 
         } catch (IOException e) {
             LogUtil.logd(TAG, "linkName: name:" + e);

@@ -63,7 +63,7 @@ public class NetActivity extends AppCompatActivity implements View.OnClickListen
                     }
                     break;
                 case MSG_CONNECTED:
-//                    mConnectState.setText("连接成功");
+                    mConnectState.setText("连接成功");
                     break;
                 case MSG_DISCONNECT:
                     reconnect_count = 0;
@@ -72,7 +72,8 @@ public class NetActivity extends AppCompatActivity implements View.OnClickListen
                     mConnectState.setText("链接断开");
                     break;
                 case MSG_KiCK:
-                    mConnectState.setText("被踢下线");
+                    String str = (String) msg.obj;
+                    mConnectState.setText(str);
                     break;
                 case MSG_OCCPUTY:
                     mConnectState.setText("占用");
