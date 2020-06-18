@@ -1,7 +1,9 @@
 package tojoy.it.tvcontrol.net;
 
 import android.os.Handler;
+import android.os.Message;
 
+import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -21,11 +23,14 @@ public class ClientSocket implements Runnable {
     private String TAG = this.getClass().getSimpleName();
     private Socket mSocket;
     private DataOutputStream output = null;
+    private DataInputStream inputStream = null;
     private volatile int operator = 0;//操作类型 0 空闲
     private KeepLive mKeepLive;
+    private ReaderThread readerThread;
     private Handler mHandler;
     private String ip;
     private int port;
+    private int len;
 
     public ClientSocket(Handler mHandler, String ip, int port) {
         this.mHandler = mHandler;
@@ -43,11 +48,15 @@ public class ClientSocket implements Runnable {
             mHandler.removeMessages(NetActivity.MSG_RECONNECTD);
             mHandler.sendEmptyMessage(mSocket.isConnected() ? NetActivity.MSG_CONNECTED : NetActivity.MSG_DISCONNECT);
             output = new DataOutputStream(mSocket.getOutputStream());
+            inputStream = new DataInputStream(mSocket.getInputStream());
+
             byte state = 3;
             sendCmd(state);
             sendString("老板001");
             mKeepLive = new KeepLive();
             mKeepLive.start();
+            readerThread = new ReaderThread();
+            readerThread.start();
         } catch (UnknownHostException e) {
             LogUtil.logd(TAG, "connect:UnknownHostException--> " + e);
             try {
@@ -183,6 +192,50 @@ public class ClientSocket implements Runnable {
                 LogUtil.logd(TAG, "KeepLive: " + e);
             }
 
+        }
+    }
+
+    private class ReaderThread extends Thread {
+        @Override
+        public void run() {
+            super.run();
+            while (output != null) {
+                try {
+                    while (true) {
+                        byte[] bt = new byte[1024 * 2];
+                        while ((len = inputStream.read(bt, 0, bt.length)) != -1) {
+                            if (bt[0] == 7 && len == 2) {//已有用户链接，是否下线
+                                LogUtil.logd(TAG, "已有用户链接");
+                                readerDetail(7);
+
+                            } else if (bt[0] == 8 && len == 2) {//被踢下线，关闭当前链接
+                                LogUtil.logd(TAG, "被踢下线");
+                                readerDetail(8);
+                            }
+
+                        }
+
+                    }
+                } catch (Exception e) {
+                    LogUtil.logd(TAG, "Exception: " + e);
+                }
+
+            }
+        }
+    }
+
+    private void readerDetail(int state) {
+        try {
+            String name = inputStream.readUTF();
+            LogUtil.logd(TAG, "linkName: name:" + name + "----" + state);
+            Message msg = Message.obtain();
+            msg.what = state;
+            msg.obj = name;
+            mHandler.sendMessage(msg);
+
+        } catch (IOException e) {
+            LogUtil.logd(TAG, "linkName: name:" + e);
+            e.printStackTrace();
         }
     }
 

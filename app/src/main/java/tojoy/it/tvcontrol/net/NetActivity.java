@@ -32,6 +32,8 @@ public class NetActivity extends AppCompatActivity implements View.OnClickListen
     public static final int MSG_CONNECTED = 2;
     public static final int MSG_DISCONNECT = 1;
     private static final int CONNECT_MAX = 6;
+    private static final int MSG_OCCPUTY = 7;//已被占用
+    private static final int MSG_KiCK = 8;//强踢
     private TextView mConnectState;
     private TextView serverIp;
     private EditText editText;
@@ -47,6 +49,7 @@ public class NetActivity extends AppCompatActivity implements View.OnClickListen
         @Override
         public void handleMessage(@NonNull Message msg) {
             super.handleMessage(msg);
+
             switch (msg.what) {
                 case MSG_RECONNECTD:
                     if (clientSocket != null) {
@@ -60,13 +63,19 @@ public class NetActivity extends AppCompatActivity implements View.OnClickListen
                     }
                     break;
                 case MSG_CONNECTED:
-                    mConnectState.setText("连接成功");
+//                    mConnectState.setText("连接成功");
                     break;
                 case MSG_DISCONNECT:
                     reconnect_count = 0;
                     if (!disconnect)
                         mHandler.sendEmptyMessageDelayed(MSG_RECONNECTD, 2000);
                     mConnectState.setText("链接断开");
+                    break;
+                case MSG_KiCK:
+                    mConnectState.setText("被踢下线");
+                    break;
+                case MSG_OCCPUTY:
+                    mConnectState.setText("占用");
                     break;
             }
         }
@@ -83,7 +92,7 @@ public class NetActivity extends AppCompatActivity implements View.OnClickListen
         RadioGroup mRadioGroup = findViewById(R.id.rg_radiogroup);
         Button mVoice = findViewById(R.id.button_voice);
         Button mConnect = findViewById(R.id.connect);
-        Button scan=findViewById(R.id.bt_scan);
+        Button scan = findViewById(R.id.bt_scan);
         scan.setOnClickListener(this);
         serverIp = findViewById(R.id.net_address);
         editText = findViewById(R.id.input_address);
@@ -142,7 +151,7 @@ public class NetActivity extends AppCompatActivity implements View.OnClickListen
             Toast.makeText(this, "请输入ip", Toast.LENGTH_SHORT).show();
             return;
         }
-        clientSocket = new ClientSocket(mHandler, address,TvSocket.port);
+        clientSocket = new ClientSocket(mHandler, address, TvSocket.port);
         new Thread(clientSocket).start();
 
     }
@@ -170,8 +179,7 @@ public class NetActivity extends AppCompatActivity implements View.OnClickListen
         if (v.getId() == R.id.connect) {
             initClient();
 
-        }
-        else if(v.getId()==R.id.bt_scan){
+        } else if (v.getId() == R.id.bt_scan) {
             Intent intent = new Intent(this, CaptureActivity.class);
             startActivityForResult(intent, 1);
         }
