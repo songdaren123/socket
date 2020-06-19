@@ -33,6 +33,7 @@ public class ClientSocket implements Runnable {
     private int port;
     private volatile boolean isAccept = false;
     private volatile boolean pauseRead = false;
+    private volatile boolean shutdown = false;//结束当前所有的任务
 //    private int len;
 
     public ClientSocket(Handler mHandler, String ip, int port) {
@@ -50,7 +51,6 @@ public class ClientSocket implements Runnable {
             mSocket.setKeepAlive(true);
             output = new DataOutputStream(mSocket.getOutputStream());
             inputStream = new DataInputStream(mSocket.getInputStream());
-
             readerThread = new ReaderThread();
             readerThread.start();
             sendCmd(SocketCmd.CMD_CONNECT);
@@ -104,13 +104,13 @@ public class ClientSocket implements Runnable {
                 }
                 operator = 0;
             } else {
-                mHandler.sendEmptyMessage(NetActivity.MSG_DISCONNECT);
+                mHandler.sendEmptyMessage(NetActivity.MSG_RECONNECTD);
             }
 
         } catch (IOException e) {
             LogUtil.logd(TAG, "writeAudio: IOException-->" + e);
             e.printStackTrace();
-            mHandler.sendEmptyMessage(NetActivity.MSG_DISCONNECT);
+            mHandler.sendEmptyMessage(NetActivity.MSG_RECONNECTD);
             try {
                 mSocket.close();
                 output.close();
@@ -180,7 +180,7 @@ public class ClientSocket implements Runnable {
         public void run() {
             super.run();
             try {
-                while (true) {
+                while (!shutdown) {
                     if (output != null && operator == 0) {
                         sendCmd(SocketCmd.CMD_HEART_BEAT);
                     }
@@ -198,7 +198,7 @@ public class ClientSocket implements Runnable {
         public void run() {
             super.run();
             try {
-                while (true) {
+                while (!shutdown) {
                     int len = 0;
                     byte[] bt = new byte[1024 * 2];
                     while (!pauseRead && (len = inputStream.read(bt, 0, bt.length)) != -1) {
@@ -254,11 +254,14 @@ public class ClientSocket implements Runnable {
     public void disconnect(boolean send) {
         if (mSocket != null && mSocket.isConnected()) {
             try {
-                mSocket.close();
                 output.close();
                 inputStream.close();
-                if(send)
-                mHandler.sendEmptyMessage(NetActivity.MSG_KiCK);
+                mSocket.shutdownOutput();
+                mSocket.shutdownInput();
+                mSocket.close();
+                shutdown = true;
+                if (send)
+                    mHandler.sendEmptyMessage(NetActivity.MSG_KiCK);
             } catch (IOException e) {
                 e.printStackTrace();
             }

@@ -70,7 +70,7 @@ public class NetActivity extends AppCompatActivity implements View.OnClickListen
                 case MSG_DISCONNECT:
                     reconnect_count = 0;
                     if (!disconnect)
-                        mHandler.sendEmptyMessageDelayed(MSG_RECONNECTD, 2000);
+//                        mHandler.sendEmptyMessageDelayed(MSG_RECONNECTD, 2000);
                     mConnectState.setText("链接断开");
                     break;
                 case MSG_KiCK:
