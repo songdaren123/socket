@@ -10,6 +10,7 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
 
+import tojoy.it.tvcontrol.config.SocketCmd;
 import tojoy.it.tvcontrol.utils.LogUtil;
 import tojoy.it.tvcontrol.utils.RecoderUtils;
 
@@ -47,13 +48,12 @@ public class ClientSocket implements Runnable {
             mSocket.connect(new InetSocketAddress(ip, port));
             mSocket.setSoTimeout(50000);
             mSocket.setKeepAlive(true);
-//            mHandler.sendEmptyMessage(mSocket.isConnected() ? NetActivity.MSG_CONNECTED : NetActivity.MSG_DISCONNECT);
             output = new DataOutputStream(mSocket.getOutputStream());
             inputStream = new DataInputStream(mSocket.getInputStream());
-            byte state = 3;
+
             readerThread = new ReaderThread();
             readerThread.start();
-            sendCmd(state);
+            sendCmd(SocketCmd.CMD_CONNECT);
             sendString("老板001");//请求连接
 
         } catch (UnknownHostException e) {
@@ -95,8 +95,7 @@ public class ClientSocket implements Runnable {
         try {
             if (mSocket != null && mSocket.isConnected()) {
                 operator = 1;
-                byte cmd = 1;
-                sendCmd(cmd);
+                sendCmd(SocketCmd.CMD_AUDIO);
                 byte[] bt = new byte[1024 * 2];
                 int len = 0;
                 while ((len = RecoderUtils.newInstance().read(bt, 0, bt.length)) > 0) {
@@ -147,10 +146,8 @@ public class ClientSocket implements Runnable {
 
     /**
      * 发送信令
-     *
-     * @param cmd 2 心跳 1，实时音频 3 设备名称
      */
-    private void sendCmd(byte cmd) {
+    public void sendCmd(byte cmd) {
         LogUtil.logd(TAG, "sendCmd:" + cmd);
         try {
             byte[] bt = new byte[2];
@@ -182,13 +179,12 @@ public class ClientSocket implements Runnable {
         @Override
         public void run() {
             super.run();
-            byte cmd = 2;
             try {
                 while (true) {
                     if (output != null && operator == 0) {
-                        sendCmd(cmd);
+                        sendCmd(SocketCmd.CMD_HEART_BEAT);
                     }
-                    Thread.sleep(2000);
+                    Thread.sleep(3000);
                 }
             } catch (Exception e) {
                 LogUtil.logd(TAG, "KeepLive: " + e);
@@ -203,24 +199,24 @@ public class ClientSocket implements Runnable {
             super.run();
             try {
                 while (true) {
-                    LogUtil.logd(TAG, "有没有");
                     int len = 0;
                     byte[] bt = new byte[1024 * 2];
                     while (!pauseRead && (len = inputStream.read(bt, 0, bt.length)) != -1) {
                         LogUtil.logd(TAG, "有没有-----");
-                        if (bt[0] == 7 && len == 2) {//已有用户链接，是否下线
+                        if (bt[0] == SocketCmd.CMD_OCCPUTY && len == 2) {//已有客户端连接
                             pauseRead = true;
                             LogUtil.logd(TAG, "已有用户链接");
-                            readerDetail(7);
+                            readerDetail(NetActivity.MSG_OCCPUTY);
                             break;
 
-                        } else if (bt[0] == 8 && len == 2) {//被踢下线，关闭当前链接
+                        } else if ((bt[0] == SocketCmd.CMD_KiCK || bt[0] == SocketCmd.CMD_DISCONNECT) && len == 2) {//被踢下线，关闭当前链接
                             LogUtil.logd(TAG, "被踢下线");
                             isAccept = false;
                             pauseRead = true;
-                            readerDetail(8);
+                            readerDetail(NetActivity.MSG_KiCK);
+                            disconnect();
                             break;
-                        } else if (bt[0] == 9 && len == 2) {
+                        } else if (bt[0] == SocketCmd.CMD_ACCEPT && len == 2) {
                             isAccept = true;
                             LogUtil.logd(TAG, "可以连接");
                             mHandler.sendEmptyMessage(NetActivity.MSG_CONNECTED);

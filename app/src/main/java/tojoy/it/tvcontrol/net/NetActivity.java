@@ -22,6 +22,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import tojoy.it.tvcontrol.R;
+import tojoy.it.tvcontrol.config.SocketCmd;
 import tojoy.it.tvcontrol.utils.AppUtil;
 import tojoy.it.tvcontrol.utils.LogUtil;
 import tojoy.it.tvcontrol.utils.QRUtils;
@@ -32,8 +33,8 @@ public class NetActivity extends AppCompatActivity implements View.OnClickListen
     public static final int MSG_CONNECTED = 2;
     public static final int MSG_DISCONNECT = 1;
     private static final int CONNECT_MAX = 6;
-    private static final int MSG_OCCPUTY = 7;//已被占用
-    private static final int MSG_KiCK = 8;//强踢
+    public static final int MSG_OCCPUTY = 7;//已被占用
+    public static final int MSG_KiCK = 8;//强踢
     private TextView mConnectState;
     private TextView serverIp;
     private EditText editText;
@@ -43,6 +44,7 @@ public class NetActivity extends AppCompatActivity implements View.OnClickListen
     private int reconnect_count = 0;
     private boolean disconnect = false;
     private ImageView qrImage;
+    private Button bt_kick;
     @SuppressLint("HandlerLeak")
     private Handler mHandler = new Handler() {
         @SuppressLint("HandlerLeak")
@@ -76,7 +78,8 @@ public class NetActivity extends AppCompatActivity implements View.OnClickListen
                     mConnectState.setText(str);
                     break;
                 case MSG_OCCPUTY:
-                    mConnectState.setText("占用");
+                    bt_kick.setVisibility(View.VISIBLE);
+                    mConnectState.setText((String) msg.obj);
                     break;
             }
         }
@@ -98,6 +101,8 @@ public class NetActivity extends AppCompatActivity implements View.OnClickListen
         serverIp = findViewById(R.id.net_address);
         editText = findViewById(R.id.input_address);
         qrImage = findViewById(R.id.qr_image);
+        bt_kick = findViewById(R.id.bt_kikt);
+        bt_kick.setOnClickListener(this);
         mConnect.setOnClickListener(this);
         mRadioGroup.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
             @Override
@@ -183,6 +188,16 @@ public class NetActivity extends AppCompatActivity implements View.OnClickListen
         } else if (v.getId() == R.id.bt_scan) {
             Intent intent = new Intent(this, CaptureActivity.class);
             startActivityForResult(intent, 1);
+        } else if (v.getId() == R.id.bt_kikt) {
+            if (clientSocket != null) {
+                disconnect = true;
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        clientSocket.sendCmd(SocketCmd.CMD_KiCK);
+                    }
+                }).start();
+            }
         }
 
     }
