@@ -126,7 +126,8 @@ public class ClientSocket implements Runnable {
 
     public void sendString(String str) {
         try {
-            output.writeUTF(str);
+            byte[] bt = str.getBytes("UTF-8");
+            output.write(bt, 0, bt.length);
             output.flush();
         } catch (IOException e) {
             mHandler.sendEmptyMessage(1);
