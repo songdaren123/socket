@@ -29,4 +29,8 @@ public class SocketCmd {
      * 接受设备连接
      */
     public static final byte CMD_ACCEPT = 7;
+    /**
+     * 客户端主动断开
+     */
+    public static final byte CMD_CLIENT_DISCONNET = 8;
 }

@@ -214,7 +214,7 @@ public class ClientSocket implements Runnable {
                             isAccept = false;
                             pauseRead = true;
                             readerDetail(NetActivity.MSG_KiCK);
-                            disconnect();
+                            disconnect(false);
                             break;
                         } else if (bt[0] == SocketCmd.CMD_ACCEPT && len == 2) {
                             isAccept = true;
@@ -251,12 +251,14 @@ public class ClientSocket implements Runnable {
     }
 
     //断开链接
-    public void disconnect() {
+    public void disconnect(boolean send) {
         if (mSocket != null && mSocket.isConnected()) {
             try {
                 mSocket.close();
                 output.close();
-                mHandler.sendEmptyMessage(NetActivity.MSG_DISCONNECT);
+                inputStream.close();
+                if(send)
+                mHandler.sendEmptyMessage(NetActivity.MSG_KiCK);
             } catch (IOException e) {
                 e.printStackTrace();
             }

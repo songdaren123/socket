@@ -121,7 +121,7 @@ public class NetActivity extends AppCompatActivity implements View.OnClickListen
                     case R.id.radio_disconnect:
                         if (clientSocket != null) {
                             disconnect = true;
-                            clientSocket.disconnect();
+                            clientSocket.disconnect(true);
                         }
                         break;
                 }
