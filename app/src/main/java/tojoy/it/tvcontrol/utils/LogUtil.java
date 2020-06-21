@@ -9,9 +9,9 @@ import android.util.Log;
  * @CreateDate: 2020/6/8 4:19 PM
  */
 public class LogUtil {
+    private static String TAG = "songmingzhan";
 
     public static void logd(String tag, String msg) {
-        String TAG = "songmingzhan";
         Log.d(TAG + tag, msg);
     }
 }

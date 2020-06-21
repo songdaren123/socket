@@ -9,10 +9,13 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.nio.charset.StandardCharsets;
 
 import tojoy.it.tvcontrol.config.SocketCmd;
+import tojoy.it.tvcontrol.utils.CloseUtil;
 import tojoy.it.tvcontrol.utils.LogUtil;
 import tojoy.it.tvcontrol.utils.RecoderUtils;
+import tojoy.it.tvcontrol.utils.StringUtil;
 
 /**
  * @ClassName: ClientSocket
@@ -48,7 +51,7 @@ public class ClientSocket implements Runnable {
                 mSocket = new Socket();
             mSocket.connect(new InetSocketAddress(ip, port));
             mSocket.setSoTimeout(50000);
-            mSocket.setKeepAlive(true);
+            mSocket.setKeepAlive(true);//2消失发送心跳包
             output = new DataOutputStream(mSocket.getOutputStream());
             inputStream = new DataInputStream(mSocket.getInputStream());
             readerThread = new ReaderThread();
@@ -58,22 +61,12 @@ public class ClientSocket implements Runnable {
 
         } catch (UnknownHostException e) {
             LogUtil.logd(TAG, "connect:UnknownHostException--> " + e);
-            try {
-                mSocket.close();
-                mSocket = null;
-            } catch (IOException e1) {
-                e1.printStackTrace();
-                LogUtil.logd(TAG, "connect:IOException--> " + e1);
-            }
+            CloseUtil.close(output);
+            CloseUtil.close(mSocket);
             e.printStackTrace();
         } catch (IOException e) {
-            e.printStackTrace();
-            try {
-                mSocket.close();
-                mSocket = null;
-            } catch (IOException e1) {
-                e1.printStackTrace();
-            }
+            CloseUtil.close(output);
+            CloseUtil.close(mSocket);
             LogUtil.logd(TAG, "connect:IOException:-->" + e);
         }
     }
@@ -111,14 +104,8 @@ public class ClientSocket implements Runnable {
             LogUtil.logd(TAG, "writeAudio: IOException-->" + e);
             e.printStackTrace();
             mHandler.sendEmptyMessage(NetActivity.MSG_RECONNECTD);
-            try {
-                mSocket.close();
-                output.close();
-
-            } catch (IOException e1) {
-                e.printStackTrace();
-                LogUtil.logd(TAG, "writeAudio: IOException-->" + e1);
-            }
+            CloseUtil.close(output);
+            CloseUtil.close(mSocket);
         } catch (Exception e) {
             LogUtil.logd(TAG, "writeAudio: Exception-->" + e);
         }
@@ -126,19 +113,15 @@ public class ClientSocket implements Runnable {
 
     public void sendString(String str) {
         try {
-            byte[] bt = str.getBytes("UTF-8");
+            byte[] bt = str.getBytes(StandardCharsets.UTF_8);
             output.write(bt, 0, bt.length);
             output.flush();
         } catch (IOException e) {
             mHandler.sendEmptyMessage(1);
             LogUtil.logd(TAG, "sendCmd: IOException-->" + e);
             e.printStackTrace();
-            try {
-                mSocket.close();
-                output.close();
-            } catch (Exception e1) {
-                LogUtil.logd(TAG, "sendCmd: Exception-->" + e1);
-            }
+            CloseUtil.close(output);
+            CloseUtil.close(mSocket);
         } catch (Exception e) {
             LogUtil.logd(TAG, "sendCmd: Exception-->" + e);
         }
@@ -159,12 +142,9 @@ public class ClientSocket implements Runnable {
             mHandler.sendEmptyMessage(1);
             LogUtil.logd(TAG, "sendCmd: IOException-->" + e);
             e.printStackTrace();
-            try {
-                mSocket.close();
-                output.close();
-            } catch (Exception e1) {
-                LogUtil.logd(TAG, "sendCmd: Exception-->" + e1);
-            }
+            CloseUtil.close(output);
+            CloseUtil.close(mSocket);
+
         } catch (Exception e) {
             LogUtil.logd(TAG, "sendCmd: Exception-->" + e);
         }
@@ -201,7 +181,7 @@ public class ClientSocket implements Runnable {
             try {
                 while (!shutdown) {
                     int len = 0;
-                    byte[] bt = new byte[1024 * 2];
+                    byte[] bt = new byte[2];
                     while (!pauseRead && (len = inputStream.read(bt, 0, bt.length)) != -1) {
                         LogUtil.logd(TAG, "有没有-----");
                         if (bt[0] == SocketCmd.CMD_OCCPUTY && len == 2) {//已有客户端连接
@@ -210,13 +190,17 @@ public class ClientSocket implements Runnable {
                             readerDetail(NetActivity.MSG_OCCPUTY);
                             break;
 
-                        } else if ((bt[0] == SocketCmd.CMD_KiCK || bt[0] == SocketCmd.CMD_DISCONNECT) && len == 2) {//被踢下线，关闭当前链接
+                        } else if (bt[0] == SocketCmd.CMD_KiCK && len == 2) {//被踢下线，关闭当前链接
                             LogUtil.logd(TAG, "被踢下线");
                             isAccept = false;
                             pauseRead = true;
                             readerDetail(NetActivity.MSG_KiCK);
                             disconnect(false);
                             break;
+                        } else if ((bt[0] == SocketCmd.CMD_DISCONNECT) && len == 2) {
+                            pauseRead = true;
+                            disconnect(true);
+
                         } else if (bt[0] == SocketCmd.CMD_ACCEPT && len == 2) {
                             isAccept = true;
                             LogUtil.logd(TAG, "可以连接");
@@ -237,11 +221,17 @@ public class ClientSocket implements Runnable {
 
     private void readerDetail(int state) {
         try {
-            String name = inputStream.readUTF();
-            LogUtil.logd(TAG, "linkName: name:" + name + "----" + state);
+            byte[] bt = new byte[1024];
+            int lang;
+            String str = null;
+            while (-1 != (lang = inputStream.read(bt, 0, bt.length))) {
+                str = StringUtil.getUTF(bt, lang);
+                break;
+            }
+            LogUtil.logd(TAG, "linkName: name:" + str + "----" + state);
             Message msg = Message.obtain();
             msg.what = state;
-            msg.obj = name;
+            msg.obj = str;
             mHandler.sendMessage(msg);
             pauseRead = false;
 
@@ -254,18 +244,13 @@ public class ClientSocket implements Runnable {
     //断开链接
     public void disconnect(boolean send) {
         if (mSocket != null && mSocket.isConnected()) {
-            try {
-                output.close();
-                inputStream.close();
-                mSocket.shutdownOutput();
-                mSocket.shutdownInput();
-                mSocket.close();
-                shutdown = true;
-                if (send)
-                    mHandler.sendEmptyMessage(NetActivity.MSG_KiCK);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            CloseUtil.close(output);
+            CloseUtil.close(inputStream);
+            CloseUtil.close(mSocket);
+            shutdown = true;
+            if (send)
+                mHandler.sendEmptyMessage(NetActivity.MSG_KiCK);
+
         }
     }
 
