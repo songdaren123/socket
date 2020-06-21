@@ -244,9 +244,12 @@ public class ClientSocket implements Runnable {
     //断开链接
     public void disconnect(boolean send) {
         if (mSocket != null && mSocket.isConnected()) {
-            CloseUtil.close(output);
-            CloseUtil.close(inputStream);
-            CloseUtil.close(mSocket);
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    sendCmd(SocketCmd.CMD_CLIENT_DISCONNET);
+                }
+            }).start();
             shutdown = true;
             if (send)
                 mHandler.sendEmptyMessage(NetActivity.MSG_KiCK);
