@@ -50,7 +50,6 @@ public class ClientSocket implements Runnable {
             if (mSocket == null || mSocket.isClosed())
                 mSocket = new Socket();
             mSocket.connect(new InetSocketAddress(ip, port));
-            mSocket.setSoTimeout(50000);
             mSocket.setKeepAlive(true);//2消失发送心跳包
             output = new DataOutputStream(mSocket.getOutputStream());
             inputStream = new DataInputStream(mSocket.getInputStream());
