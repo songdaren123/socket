@@ -34,10 +34,10 @@
     </RadioGroup>
 
     <TextView
-        android:id="@+id/connect_state"
+        android:id="@+id/received_msg"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="连接状态:未连接" />
+        android:text="消息内容" />
 
     <LinearLayout
         android:id="@+id/net_server"
@@ -72,16 +72,16 @@
             android:orientation="horizontal">
 
             <EditText
-                android:id="@+id/input_address"
+                android:id="@+id/message_content"
                 android:layout_width="180dp"
                 android:layout_height="wrap_content"
-                android:hint="输入服务端ip地址" />
+                android:hint="输入消息内容" />
 
             <Button
-                android:id="@+id/connect"
+                android:id="@+id/btn_send"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="连接" />
+                android:text="send" />
 
             <Button
                 android:id="@+id/bt_scan"

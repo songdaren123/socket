@@ -4,9 +4,7 @@ import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Message;
-import android.text.TextUtils;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
@@ -15,116 +13,72 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RadioGroup;
 import android.widget.TextView;
-import android.widget.Toast;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import java.io.IOException;
+
 import tojoy.it.tvcontrol.R;
-import tojoy.it.tvcontrol.config.SocketCmd;
+import tojoy.it.tvcontrol.net.client.ClientChannel;
+import tojoy.it.tvcontrol.net.server.ServerChannel;
+import tojoy.it.tvcontrol.task.MsgReceived;
 import tojoy.it.tvcontrol.utils.AppUtil;
 import tojoy.it.tvcontrol.utils.LogUtil;
 import tojoy.it.tvcontrol.utils.QRUtils;
 import tojoy.it.tvcontrol.utils.RecoderUtils;
 
-public class NetActivity extends AppCompatActivity implements View.OnClickListener {
+public class NetActivity extends AppCompatActivity implements View.OnClickListener, MsgReceived {
+    private String TAG = "songmingzhan";
     public static final int MSG_RECONNECTD = 3;
     public static final int MSG_CONNECTED = 2;
-    public static final int MSG_DISCONNECT = 1;
-    private static final int CONNECT_MAX = 6;
+
     public static final int MSG_OCCPUTY = 7;//已被占用
     public static final int MSG_KiCK = 8;//强踢
-    private TextView mConnectState;
+    private TextView messageContent;
     private TextView serverIp;
     private EditText editText;
     private LinearLayout mServerLayout;
     private LinearLayout mClientLayout;
-    private ClientSocket clientSocket;
-    private int reconnect_count = 0;
-    private boolean disconnect = false;
+    private ClientChannel clientChannel;
+
     private ImageView qrImage;
     private Button bt_kick;
-    @SuppressLint("HandlerLeak")
-    private Handler mHandler = new Handler() {
-        @SuppressLint("HandlerLeak")
-        @Override
-        public void handleMessage(@NonNull Message msg) {
-            super.handleMessage(msg);
 
-            switch (msg.what) {
-                case MSG_RECONNECTD:
-                    if (clientSocket != null) {
-                        new Thread(clientSocket).start();
-                    }
-                    if (reconnect_count < CONNECT_MAX) {
-                        reconnect_count++;
-                        mHandler.sendEmptyMessageDelayed(MSG_RECONNECTD, 50000);
-                    } else {
-                        mConnectState.setText("重连" + reconnect_count);
-                    }
-                    break;
-                case MSG_CONNECTED:
-                    mConnectState.setText("连接成功");
-                    break;
-                case MSG_DISCONNECT:
-                    reconnect_count = 0;
-                    if (!disconnect)
-//                        mHandler.sendEmptyMessageDelayed(MSG_RECONNECTD, 2000);
-                    mConnectState.setText("链接断开");
-                    break;
-                case MSG_KiCK:
-                    String str = (String) msg.obj;
-                    mConnectState.setText(str);
-                    break;
-                case MSG_OCCPUTY:
-                    bt_kick.setVisibility(View.VISIBLE);
-                    mConnectState.setText((String) msg.obj);
-                    break;
-            }
-        }
-    };
 
     @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_net);
-        mConnectState = findViewById(R.id.connect_state);
+        messageContent = findViewById(R.id.received_msg);
         mClientLayout = findViewById(R.id.net_client);
         mServerLayout = findViewById(R.id.net_server);
         RadioGroup mRadioGroup = findViewById(R.id.rg_radiogroup);
         Button mVoice = findViewById(R.id.button_voice);
-        Button mConnect = findViewById(R.id.connect);
+        Button send = findViewById(R.id.btn_send);
         Button scan = findViewById(R.id.bt_scan);
         scan.setOnClickListener(this);
         serverIp = findViewById(R.id.net_address);
-        editText = findViewById(R.id.input_address);
+        editText = findViewById(R.id.message_content);
         qrImage = findViewById(R.id.qr_image);
         bt_kick = findViewById(R.id.bt_kikt);
         bt_kick.setOnClickListener(this);
-        mConnect.setOnClickListener(this);
-        mRadioGroup.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(RadioGroup group, int checkedId) {
-                switch (checkedId) {
-                    case R.id.radio_client:
-                        mClientLayout.setVisibility(View.VISIBLE);
-                        mServerLayout.setVisibility(View.GONE);
-                        break;
-                    case R.id.radio_server:
-                        mClientLayout.setVisibility(View.GONE);
-                        mServerLayout.setVisibility(View.VISIBLE);
-                        disconnect = false;
-                        initServer();
-                        break;
-                    case R.id.radio_disconnect:
-                        if (clientSocket != null) {
-                            disconnect = true;
-                            clientSocket.disconnect(true);
-                        }
-                        break;
-                }
+        send.setOnClickListener(this);
+        mRadioGroup.setOnCheckedChangeListener((group, checkedId) -> {
+            switch (checkedId) {
+                case R.id.radio_client:
+                    mClientLayout.setVisibility(View.VISIBLE);
+                    mServerLayout.setVisibility(View.GONE);
+                    break;
+                case R.id.radio_server:
+                    mClientLayout.setVisibility(View.GONE);
+                    mServerLayout.setVisibility(View.VISIBLE);
+                    initServer();
+                    break;
+                case R.id.radio_disconnect:
+
+                    break;
             }
         });
         mVoice.setOnTouchListener(new View.OnTouchListener() {
@@ -134,9 +88,6 @@ public class NetActivity extends AppCompatActivity implements View.OnClickListen
                 switch (event.getAction()) {
                     case MotionEvent.ACTION_DOWN:
                         RecoderUtils.newInstance().startRecoder();
-                        if (clientSocket != null) {
-                            clientSocket.startRecoder();
-                        }
 
 
                         break;
@@ -150,54 +101,29 @@ public class NetActivity extends AppCompatActivity implements View.OnClickListen
         });
     }
 
-    //初始化客户端
-    private void initClient() {
-        final String address = editText.getText().toString().trim();
-        if (TextUtils.isEmpty(address)) {
-            Toast.makeText(this, "请输入ip", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        clientSocket = new ClientSocket(mHandler, address, TvSocket.port);
-        new Thread(clientSocket).start();
-
-    }
-
 
     private void initServer() {
         String ip = NetUtils.getLocalIpAddress(this);
         String qrURl = new StringBuilder().append("&QR_IP=").append(ip).append("&QR_PORT=").append(TvSocket.port).toString();
         Bitmap largeQrImage = QRUtils.createQRcodeImage("https://?" + qrURl, AppUtil.dip2px(NetActivity.this, 200), AppUtil.dip2px(NetActivity.this, 200));
         qrImage.setImageBitmap(largeQrImage);
-        if (!TextUtils.isEmpty(ip)) {
-            serverIp.setText(ip);
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    TvSocket tvSocket = new TvSocket();
-                    tvSocket.init(mHandler);
-                }
-            }).start();
-        }
+        ServerChannel serverChannel = new ServerChannel();
+        serverChannel.initServer();
+        new Thread(serverChannel).start();
     }
 
     @Override
     public void onClick(View v) {
-        if (v.getId() == R.id.connect) {
-            initClient();
+        if (v.getId() == R.id.btn_send) {
+            if (clientChannel != null) {
+                clientChannel.sendMessage(editText.getText().toString().trim());
+            }
 
         } else if (v.getId() == R.id.bt_scan) {
             Intent intent = new Intent(this, CaptureActivity.class);
             startActivityForResult(intent, 1);
         } else if (v.getId() == R.id.bt_kikt) {
-            if (clientSocket != null) {
-                disconnect = true;
-                new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        clientSocket.sendCmd(SocketCmd.CMD_KiCK);
-                    }
-                }).start();
-            }
+
         }
 
     }
@@ -209,8 +135,14 @@ public class NetActivity extends AppCompatActivity implements View.OnClickListen
         if (resultCode == 3) {
             int port = data.getIntExtra("port", 0);
             String address = data.getStringExtra("ip");
-            clientSocket = new ClientSocket(mHandler, address, port);
-            new Thread(clientSocket).start();
+            clientChannel = new ClientChannel(address, port);
+            clientChannel.setMsgReceived(this);
+            new Thread(clientChannel).start();
         }
+    }
+
+    @Override
+    public void onReceived(String message) {
+        runOnUiThread(() -> messageContent.setText(message));
     }
 }
